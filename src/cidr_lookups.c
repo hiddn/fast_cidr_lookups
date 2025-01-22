@@ -30,7 +30,7 @@ void DEBUG (char const *format, ...) {
 	return;
 }
 
-cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char has_data) {
+cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char has_data, void *data) {
     cidr_node *node = 0;
     assert(ip != 0);
     node = malloc(sizeof(cidr_node));
@@ -43,6 +43,7 @@ cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bi
         node->has_data = 1;
         //DEBUG("create_node> %s%s\tbits=%d\n", ircd_ntocidrmask(ip, bits), !has_data ? "(v)" : "", bits);
     }
+    node->data = data;
     return node;
 }
 
@@ -53,15 +54,15 @@ cidr_root_node* cidr_new_tree() {
     assert(root != 0);
     if (!ipmask_parse("0.0.0.0/0", &ip, &bits))
         exit(-1);
-    root->ipv4 = cidr_create_node(&ip, bits, 0);
+    root->ipv4 = cidr_create_node(&ip, bits, 0, 0);
     if (!ipmask_parse("0::/0", &ip, &bits))
         exit(-1);
-    root->ipv6 = cidr_create_node(&ip, bits, 0);
+    root->ipv6 = cidr_create_node(&ip, bits, 0, 0);
     return root;
 }
 
 // Returns NULL if the node already exists
-cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format) {
+cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data) {
     unsigned short i = 0;
     cidr_node *n;
     cidr_node *new_node = 0;
@@ -89,7 +90,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
             if (i == bits && !irc_in_addr_cmp(&ip, &n->ip)) {
                 break;
             }
-            new_node = cidr_create_node(&ip, bits, 1);
+            new_node = cidr_create_node(&ip, bits, 1, data);
             virtual_node = 0;
             struct irc_in_addr tmp_ip;
             memcpy(&tmp_ip, &ip, sizeof(struct irc_in_addr));
@@ -101,7 +102,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 }
                 // We're here because we have to create a virtual node that holds no data
                 irc_in6_CIDRMinIP(&tmp_ip, j);
-                virtual_node = cidr_create_node(&tmp_ip, j, 0);
+                virtual_node = cidr_create_node(&tmp_ip, j, 0, data);
                 child_pptr = turn_right ? &n->parent->r : &n->parent->l;
                 *child_pptr = virtual_node;
                 virtual_node->parent = n->parent;
@@ -129,7 +130,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
         DEBUG("\tbit %3u node  %3s %-18s turn %s\n", i, n->has_data ? "(v)" : "", ircd_ntocidrmask(&n->ip, n->bits), turn_right ? "right" : "left");
         if (!*child_pptr || i == 128) {
             DEBUG("\tAdding node\n");
-            new_node = cidr_create_node(&ip, bits, 1);
+            new_node = cidr_create_node(&ip, bits, 1, data);
             *child_pptr = new_node;
             new_node->parent = n;
             return new_node;
@@ -185,6 +186,15 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
     }
     assert(n != 0);
     return 0;
+}
+
+// Returns 0 if the node does not exist or if there's no data for the node. Returns a void data ptr otherwise.
+void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format) {
+    cidr_node *node = cidr_find_node(root_tree, cidr_string_format);
+    if (!node) {
+        return 0;
+    }
+    return node->data;
 }
 
 int cidr_rem_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format) {

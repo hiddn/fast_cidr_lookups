@@ -269,7 +269,7 @@ int test_cidr_add_node() {
     cidr_root_node *root_tree = cidr_new_tree();
     
     for (int i = 0; i < array_size; i++) {
-        cidr_add_node(root_tree, add_node_test_cases[i].cidr);
+        cidr_add_node(root_tree, add_node_test_cases[i].cidr, 0);
     }
     cidr_node *node = root_tree->ipv4;
     printf("ipv4 tree:\n");
