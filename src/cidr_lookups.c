@@ -109,7 +109,6 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 virtual_node->r = !ip_bit ? n : new_node;
                 n->parent = virtual_node;
                 new_node->parent = virtual_node;
-                virtual_node->skipped_bits = bits - virtual_node->parent->bits - 1;
                 DEBUG("\tbit %3u node  %3s %-18s turn %s  (Virtual node created)\n", j, virtual_node->has_data ? "(v)" : "", ircd_ntocidrmask(&virtual_node->ip, virtual_node->bits), ip_bit ? "right" : "left");
             }
             if (!virtual_node) {
@@ -122,8 +121,6 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                     new_node->l = n;
                 n->parent = new_node;
             }
-            new_node->skipped_bits = bits - new_node->parent->bits - 1;
-            n->skipped_bits = n->bits - n->parent->bits - 1;
             DEBUG("\tAdding node\n");
             return new_node;
         }
@@ -135,11 +132,10 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
             new_node = cidr_create_node(&ip, bits, 1);
             *child_pptr = new_node;
             new_node->parent = n;
-            new_node->skipped_bits = bits - new_node->parent->bits - 1;
             return new_node;
         }
         n = *child_pptr;
-        //i += n->skipped_bits;
+        // Handle skipped bits
         i += n->bits - n->parent->bits - 1;
     }
     // If we're here, it's because the entry already exists, whether it's with a bitlen of 128 or lower

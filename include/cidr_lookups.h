@@ -7,7 +7,6 @@
 typedef struct _cidr_node {
     struct irc_in_addr ip;
     unsigned char bits;
-    unsigned char skipped_bits;
     struct _cidr_node *parent;
     struct _cidr_node *l;
     struct _cidr_node *r;
