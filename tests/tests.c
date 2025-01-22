@@ -11,10 +11,10 @@
 
 //#define CIDR_DEBUG_ENABLED
 
-struct _test_cases {
+struct _add_node_test_cases {
     char cidr[CIDR_LEN+1];
-    char expect_insert_success;
-} node_tests[] = {
+    char retval_expected;
+} add_node_test_cases[] = {
     {"1.2.0.0/16", 1},
     {"1.2.3.4/31", 1},
     {"1.2.3.5/32", 1},
@@ -31,8 +31,17 @@ struct _test_cases {
     {"1.2.3.128/29", 1},
     {"1.2.3.144/28", 1},
     {"1.2.3.128/25", 1},
-    /*
-    */
+};
+
+struct _rem_node_test_cases {
+    char cidr[CIDR_LEN+1];
+    char retval_expected;
+} rem_node_test_cases[] = {
+    {"1.2.3.4/31", 1},
+    {"1.2.0.0/16", 1},
+    {"1.2.3.0/24", 1},
+    {"0.0.0.0/0", 0},
+    {"1.2.3.0/30", 0},
 };
 
 
@@ -256,11 +265,11 @@ int test_irc_in6_CIDRMinIP() {
 
 int test_cidr_add_node() {
     int success = 1;
-    int array_size = sizeof(node_tests) / sizeof(node_tests[0]);
+    int array_size = sizeof(add_node_test_cases) / sizeof(add_node_test_cases[0]);
     cidr_root_node *root_tree = cidr_new_tree();
     
     for (int i = 0; i < array_size; i++) {
-        cidr_add_node(root_tree, node_tests[i].cidr);
+        cidr_add_node(root_tree, add_node_test_cases[i].cidr);
     }
     cidr_node *node = root_tree->ipv4;
     printf("ipv4 tree:\n");
@@ -274,21 +283,52 @@ int test_cidr_add_node() {
     // Test cidr_find_node()
     printf("Testing cidr_find_node()...\n");
     for (int i = 0; i < array_size; i++) {
-        cidr_node *node = cidr_find_node(root_tree, node_tests[i].cidr);
+        cidr_node *node = cidr_find_node(root_tree, add_node_test_cases[i].cidr);
         const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
         //char cidr[CIDR_LEN+1];
         //strcpy(cidr, ircd_ntocidrmask(&node->ip, node->bits));
         if (!node) {
-            printf("  [%2d] %-18s   res: FAILED. node not found\n", i, node_tests[i].cidr);
+            printf("  [%2d] %-18s   res: FAILED. node not found\n", i, add_node_test_cases[i].cidr);
             success = 0;
         }
-        else if (strncmp(cidr, node_tests[i].cidr, strlen(node_tests[i].cidr)) != 0) {
-            printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, node_tests[i].cidr, cidr);
+        else if (strncmp(cidr, add_node_test_cases[i].cidr, strlen(add_node_test_cases[i].cidr)) != 0) {
+            printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, add_node_test_cases[i].cidr, cidr);
             success = 0;
         }
         else {
-            printf("  [%2d] %-18s   res: SUCCESS\n", i, node_tests[i].cidr);
-            
+            printf("  [%2d] %-18s   res: SUCCESS\n", i, add_node_test_cases[i].cidr);
+        }
+    }
+
+    // Test cidr_rem_node()
+    printf("\nTesting cidr_rem_node()...\n");
+    array_size = sizeof(rem_node_test_cases) / sizeof(rem_node_test_cases[0]);
+    for (int i = 0; i < array_size; i++) {
+        cidr_rem_node_by_cidr(root_tree, rem_node_test_cases[i].cidr);
+    }
+    node = root_tree->ipv4;
+    printf("ipv4 tree (after removing nodes):\n");
+    walk_tree(node, 1);
+    walk_tree(node, 0);
+    printf("\nipv6 tree (after removing nodes):\n");
+    node = root_tree->ipv6;
+    walk_tree(node, 1);
+    walk_tree(node, 0);
+
+    printf("\n(Still) testing cidr_rem_node()...\n");
+    for (int i = 0; i < array_size; i++) {
+        cidr_node *node = cidr_find_node(root_tree, rem_node_test_cases[i].cidr);
+        const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
+        if (node && node->has_data) {
+            printf("  [%2d] %-18s   res: FAILED. node was removed but was still found\n", i, rem_node_test_cases[i].cidr);
+            success = 0;
+        }
+        else if (node && strncmp(cidr, rem_node_test_cases[i].cidr, strlen(rem_node_test_cases[i].cidr)) != 0) {
+            printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, rem_node_test_cases[i].cidr, cidr);
+            success = 0;
+        }
+        else {
+            printf("  [%2d] %-18s   res: SUCCESS\n", i, rem_node_test_cases[i].cidr);
         }
     }
     return success;

@@ -25,8 +25,8 @@ cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bi
 cidr_root_node* cidr_new_tree();
 cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format);
 cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format);
-int cidr_remove_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format);
-int cidr_remove_node(cidr_node *node);
+int cidr_rem_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format);
+int cidr_rem_node(cidr_node *node);
 unsigned short _cidr_get_bit(const struct irc_in_addr *ip1, unsigned int bitlen);
 void _cidr_set_bit(struct irc_in_addr *ip1, unsigned char bitlen);
 cidr_node* cidr_get_parent_node(cidr_root_node *root_tree, char *cidr_string_format);

@@ -187,25 +187,69 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
     return 0;
 }
 
-int cidr_remove_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format) {
-    return cidr_remove_node(cidr_find_node(root_tree, cidr_string_format));
+int cidr_rem_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format) {
+    return cidr_rem_node(cidr_find_node(root_tree, cidr_string_format));
 }
 
-int cidr_remove_node(cidr_node *node) {
+int cidr_rem_node(cidr_node *node) {
     if (!node) {
         return 0;
     }
-    if (node->l) {
-        node->l->parent = node->parent;
+    if (!node->has_data) {
+        // Do not remove virtual nodes.
+        return 0;
     }
-    if (node->r) {
-        node->r->parent = node->parent;
+    if (!node->parent) {
+        // It is the root node. Make it virtual.
+        node->has_data = 0;
+        node->data = 0;
+        return 1;
     }
-    if (node->parent) {
+    else if (node->l && node->r) {
+        // Node has two children. Make it virtual.
+        node->has_data = 0;
+        node->data = 0;
+        return 1;
+    }
+    else if ((node->l && !node->r) || (!node->l && node->r)) {
+        // Node has only one children. Remove node and rearrange tree.
+        cidr_node *child_node = node->l ? node->l : node->r;
+        child_node->parent = node->parent;
         if (node->parent->l == node) {
             node->parent->l = node->l ? node->l : node->r;
-        } else {
+        }
+        else {
             node->parent->r = node->r ? node->r : node->l;
+        }
+    }
+    else {
+        // Node has no children. Remove node.
+        if (node->parent->l == node) {
+            node->parent->l = 0;
+        }
+        else {
+            node->parent->r = 0;
+        }
+    }
+    DEBUG("remove_node> %s\n", ircd_ntocidrmask(&node->ip, node->bits));
+    // Check if parent node is virtual and has now only one children. If so, remove parent virtual node too.
+    cidr_node *parent_node = node->parent;
+    if (parent_node && !parent_node->has_data && (!parent_node->l || !parent_node->r)) {
+        cidr_node *grandparent_node = parent_node->parent;
+        cidr_node *sibling_node = parent_node->l ? parent_node->l : parent_node->r;
+        if (grandparent_node) {
+            // Only free parent node if it's not the root node.
+            if (grandparent_node->l == parent_node) {
+                grandparent_node->l = sibling_node;
+            } else {
+                grandparent_node->r = sibling_node;
+            }
+            if (sibling_node) {
+                sibling_node->parent = grandparent_node;
+            }
+            DEBUG("remove_node> %s\n", ircd_ntocidrmask(&node->ip, node->bits));
+            free(parent_node);
+            parent_node = grandparent_node;
         }
     }
     free(node);
