@@ -41,7 +41,6 @@ cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bi
     node->bits = bits;
     if (!is_virtual) {
         node->is_virtual = 0;
-        //DEBUG("create_node> %s%s\tbits=%d\n", ircd_ntocidrmask(ip, bits), is_virtual_node ? "(v)" : "", bits);
     }
     node->data = data;
     return node;
@@ -163,7 +162,6 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
     irc_in6_CIDRMinIP(&ip, bits);
     char cidr[CIDR_LEN+1];
     strncpy(cidr, ircd_ntocidrmask(&ip, bits), CIDR_LEN);
-    //DEBUG("find_node>    %s\tbits=%d\n", cidr, bits);
     if (irc_in_addr_is_ipv4(&ip)) {
         n = root_tree->ipv4;
     }
@@ -171,7 +169,6 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
         n = root_tree->ipv6;
     for (i = n->bits; i <= 128; i++) {
         if (i >= bits) {
-            //DEBUG(" \ti(%u) >= bits(%u)\n", i, bits);
             if (!irc_in_addr_cmp(&ip, &n->ip) && i == n->bits)
                 if (!n->is_virtual)
                     return n;
@@ -183,14 +180,13 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
             return 0;
         }
         n = *child_pptr;
-        //i += n->skipped_bits;
         i += n->bits - n->parent->bits - 1;
     }
     assert(n != 0);
     return 0;
 }
 
-// Returns 0 if the node does not exist or if there's no data for the node. Returns a void data ptr otherwise.
+// Returns 0 if the node does not exist or if there's no data for the node. Returns a void ptr to the data otherwise.
 void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format) {
     cidr_node *node = cidr_find_node(root_tree, cidr_string_format);
     if (!node) {
