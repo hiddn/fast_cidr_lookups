@@ -30,7 +30,7 @@ void DEBUG (char const *format, ...) {
 	return;
 }
 
-cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char has_data, void *data) {
+cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data) {
     cidr_node *node = 0;
     assert(ip != 0);
     node = malloc(sizeof(cidr_node));
@@ -39,9 +39,9 @@ cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bi
     if (ip != 0)
         memcpy(&node->ip, ip, sizeof(node->ip));
     node->bits = bits;
-    if (has_data) {
-        node->has_data = 1;
-        //DEBUG("create_node> %s%s\tbits=%d\n", ircd_ntocidrmask(ip, bits), !has_data ? "(v)" : "", bits);
+    if (!is_virtual) {
+        node->is_virtual = 0;
+        //DEBUG("create_node> %s%s\tbits=%d\n", ircd_ntocidrmask(ip, bits), is_virtual_node ? "(v)" : "", bits);
     }
     node->data = data;
     return node;
@@ -78,28 +78,29 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
     strncpy(cidr, ircd_ntocidrmask(&ip, bits), CIDR_LEN);
     cidr[CIDR_LEN] = 0;
     DEBUG("add_node>    %s\tbits=%d\n", cidr, bits);
-    if (irc_in_addr_is_ipv4(&ip)) {
-        n = root_tree->ipv4;
-    }
-    else
-        n = root_tree->ipv6;
+    n = irc_in_addr_is_ipv4(&ip) ? root_tree->ipv4 : root_tree->ipv6;
     for (i = n->bits; i <= 128; i++) {
         if (i >= bits) {
+            // We need to insert the new node under the n->parent node, but maybe not directly under.
             DEBUG(" \ti(%u) >= bits(%u)\n", i, bits);
             if (i == bits && !irc_in_addr_cmp(&ip, &n->ip)) {
+                // Node already exists
                 break;
             }
             new_node = cidr_create_node(&ip, bits, 1, data);
             virtual_node = 0;
             struct irc_in_addr tmp_ip;
             memcpy(&tmp_ip, &ip, sizeof(struct irc_in_addr));
+            // Iterate between the parent's node and the current node to find the proper place to insert the node.
+            // Considering that we skip bits, we may require to create a virtual node at some point.
             for (unsigned char j = n->parent->bits; j < bits; j++) {
                 unsigned char ip_bit = _cidr_get_bit(&ip, j);
                 unsigned char n_ip_bit = _cidr_get_bit(&n->ip, j);
                 if (ip_bit == n_ip_bit) {
+                    // As long as the bits are the same, we continue.
                     continue;
                 }
-                // We're here because we have to create a virtual node that holds no data
+                // Create a virtual node that holds no data.
                 irc_in6_CIDRMinIP(&tmp_ip, j);
                 virtual_node = cidr_create_node(&tmp_ip, j, 0, data);
                 child_pptr = turn_right ? &n->parent->r : &n->parent->l;
@@ -109,7 +110,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 virtual_node->r = !ip_bit ? n : new_node;
                 n->parent = virtual_node;
                 new_node->parent = virtual_node;
-                DEBUG("\tbit %3u node  %3s %-18s turn %s  (Virtual node created)\n", j, virtual_node->has_data ? "(v)" : "", ircd_ntocidrmask(&virtual_node->ip, virtual_node->bits), ip_bit ? "right" : "left");
+                DEBUG("\tbit %3u node  %3s %-18s turn %s  (Virtual node created)\n", j, virtual_node->is_virtual ? "(v)" : "", ircd_ntocidrmask(&virtual_node->ip, virtual_node->bits), ip_bit ? "right" : "left");
             }
             if (!virtual_node) {
                 child_pptr = turn_right ? &n->parent->r : &n->parent->l;
@@ -126,7 +127,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
         }
         turn_right = _cidr_get_bit(&ip, i);
         child_pptr = turn_right ? &n->r : &n->l;
-        DEBUG("\tbit %3u node  %3s %-18s turn %s\n", i, n->has_data ? "(v)" : "", ircd_ntocidrmask(&n->ip, n->bits), turn_right ? "right" : "left");
+        DEBUG("\tbit %3u node  %3s %-18s turn %s\n", i, n->is_virtual ? "(v)" : "", ircd_ntocidrmask(&n->ip, n->bits), turn_right ? "right" : "left");
         if (!*child_pptr || i == 128) {
             DEBUG("\tAdding node\n");
             new_node = cidr_create_node(&ip, bits, 1, data);
@@ -138,7 +139,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
         // Handle skipped bits
         i += n->bits - n->parent->bits - 1;
     }
-    // If we're here, it's because the entry already exists, whether it's with a bitlen of 128 or lower
+    // The entry already exists, whether it's with a bitlen of 128 or lower
     DEBUG("i=%u\n", i);
     assert(i < 129);
     assert(i == bits);
@@ -172,7 +173,7 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
         if (i >= bits) {
             //DEBUG(" \ti(%u) >= bits(%u)\n", i, bits);
             if (!irc_in_addr_cmp(&ip, &n->ip) && i == n->bits)
-                if (n->has_data)
+                if (!n->is_virtual)
                     return n;
             return 0;
         }
@@ -206,19 +207,19 @@ int cidr_rem_node(cidr_node *node) {
     if (!node) {
         return 0;
     }
-    if (!node->has_data) {
+    if (node->is_virtual) {
         // Do not remove virtual nodes.
         return 0;
     }
     if (!node->parent) {
         // It is the root node. Make it virtual.
-        node->has_data = 0;
+        node->is_virtual = 1;
         node->data = 0;
         return 1;
     }
     else if (node->l && node->r) {
         // Node has two children. Make it virtual.
-        node->has_data = 0;
+        node->is_virtual = 1;
         node->data = 0;
         return 1;
     }
@@ -245,7 +246,7 @@ int cidr_rem_node(cidr_node *node) {
     DEBUG("remove_node> %s\n", ircd_ntocidrmask(&node->ip, node->bits));
     // Check if parent node is virtual and has now only one children. If so, remove parent virtual node too.
     cidr_node *parent_node = node->parent;
-    if (parent_node && !parent_node->has_data && (!parent_node->l || !parent_node->r)) {
+    if (parent_node && parent_node->is_virtual && (!parent_node->l || !parent_node->r)) {
         cidr_node *grandparent_node = parent_node->parent;
         cidr_node *sibling_node = parent_node->l ? parent_node->l : parent_node->r;
         if (grandparent_node) {
