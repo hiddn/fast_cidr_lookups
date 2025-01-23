@@ -31,7 +31,7 @@ void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format);
 unsigned short _cidr_get_bit(const struct irc_in_addr *ip1, unsigned int bitlen);
 void _cidr_set_bit(struct irc_in_addr *ip1, unsigned char bitlen);
 cidr_node* cidr_get_parent_node(cidr_root_node *root_tree, char *cidr_string_format);
-
-
+const char* get_cidr_mask(cidr_node *node);
+void set_cidr_mask(cidr_node *node, char *buf);
 
 #endif /* __CIDR_LOOKUPS_H */

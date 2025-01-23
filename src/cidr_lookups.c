@@ -144,6 +144,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
     assert(i == bits);
     assert(n != 0);
     DEBUG("\tAlready exists? Current node: %s\n", ircd_ntocidrmask(&n->ip, n->bits));
+    n->data = data;
     return n;
 }
 
@@ -285,4 +286,11 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, unsigned int bit_inde
 
 const char* get_cidr_mask(cidr_node *node) {
     return ircd_ntocidrmask(&node->ip, node->bits);
+}
+
+void set_cidr_mask(cidr_node *node, char *buf) {
+    assert(node != 0);
+    const char *cidr = ircd_ntocidrmask(&node->ip, node->bits);
+    strncpy(buf, cidr, CIDR_LEN);
+    buf[CIDR_LEN] = 0;
 }
