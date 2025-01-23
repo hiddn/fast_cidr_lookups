@@ -4,3 +4,4 @@ cidr
 obj
 tests/sizeof_short*
 tests/endian_test*
+example
