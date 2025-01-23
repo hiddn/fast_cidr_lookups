@@ -61,7 +61,6 @@ cidr_root_node* cidr_new_tree() {
     return root;
 }
 
-// Returns NULL if the node already exists
 cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data) {
     unsigned short i = 0;
     cidr_node *n;
@@ -172,7 +171,8 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
         if (i >= bits) {
             //DEBUG(" \ti(%u) >= bits(%u)\n", i, bits);
             if (!irc_in_addr_cmp(&ip, &n->ip) && i == n->bits)
-                return n;
+                if (n->has_data)
+                    return n;
             return 0;
         }
         turn_right = _cidr_get_bit(&ip, i);
@@ -283,3 +283,6 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, unsigned int bit_inde
     return ip16;
 }
 
+const char* get_cidr_mask(cidr_node *node) {
+    return ircd_ntocidrmask(&node->ip, node->bits);
+}
