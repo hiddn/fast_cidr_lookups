@@ -16,7 +16,8 @@
  * @param[in] format Format string
  * @param[in] ... Variable arguments
  */
-void DEBUG (char const *format, ...) {
+void DEBUG (char const *format, ...)
+{
 	va_list vl;
 	int nchars;
 	char outbuf[MAX_DEBUG_PAYLOAD+3];
@@ -42,7 +43,8 @@ void DEBUG (char const *format, ...) {
  * @param[in] data Pointer to the data associated with the node
  * @return Pointer to the created CIDR node
  */
-cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data) {
+cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data)
+{
     cidr_node *node = 0;
     assert(ip != 0);
     node = malloc(sizeof(cidr_node));
@@ -61,7 +63,8 @@ cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bi
 /** cidr_new_tree - create a new CIDR tree
  * @return Pointer to the created CIDR tree root node
  */
-cidr_root_node* cidr_new_tree() {
+cidr_root_node* cidr_new_tree()
+{
     struct irc_in_addr ip;
     unsigned char bits;
     cidr_root_node *root = malloc(sizeof(cidr_root_node));
@@ -81,7 +84,8 @@ cidr_root_node* cidr_new_tree() {
  * @param[in] data Pointer to the data associated with the node
  * @return Pointer to the added CIDR node
  */
-cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data) {
+cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data)
+{
     unsigned short i = 0;
     cidr_node *n;
     cidr_node *new_node = 0;
@@ -174,7 +178,8 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format) {
+cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format)
+{
     unsigned short i = 0;
     cidr_node *n;
     cidr_node **child_pptr;
@@ -216,7 +221,8 @@ cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_stri
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the data associated with the node if it exists. Otherwise, returns NULL
  */
-void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_format) {
+void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_format)
+{
     cidr_node *node = cidr_find_node(root_tree, cidr_string_format);
     if (!node) {
         return 0;
@@ -229,7 +235,8 @@ void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_for
  * @param[in] cidr_string_format CIDR string format
  * @return 1 if the node was removed, 0 otherwise
  */
-int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const char *cidr_string_format) {
+int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const char *cidr_string_format)
+{
     return cidr_rem_node(cidr_find_node(root_tree, cidr_string_format));
 }
 
@@ -237,7 +244,8 @@ int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const char *cidr_stri
  * @param[in] node Pointer to the node to be removed
  * @return 1 if the node was removed, 0 otherwise
  */
-int cidr_rem_node(cidr_node *node) {
+int cidr_rem_node(cidr_node *node)
+{
     if (!node) {
         return 0;
     }
@@ -328,7 +336,8 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bi
  * @param[in] node Pointer to the node
  * @return The CIDR mask of the node
  */
-const char* get_cidr_mask(const cidr_node *node) {
+const char* get_cidr_mask(const cidr_node *node)
+{
     return ircd_ntocidrmask(&node->ip, node->bits);
 }
 
@@ -336,7 +345,8 @@ const char* get_cidr_mask(const cidr_node *node) {
  * @param[in] node Pointer to the node
  * @param[out] buf Buffer to store the CIDR mask
  */
-void set_cidr_mask(cidr_node *node, char *buf) {
+void set_cidr_mask(cidr_node *node, char *buf)
+{
     assert(node != 0);
     const char *cidr = ircd_ntocidrmask(&node->ip, node->bits);
     strncpy(buf, cidr, CIDR_LEN);

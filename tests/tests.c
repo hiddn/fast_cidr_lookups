@@ -45,7 +45,8 @@ struct _rem_node_test_cases {
 };
 
 
-void walk_tree(const cidr_node *node, int uml_type) {
+void walk_tree(const cidr_node *node, int uml_type)
+{
     static int noexist_inc = 0;
     static int depth = 0;
     char cidr[CIDR_LEN+1];
@@ -199,7 +200,8 @@ struct _test_cases_get_bit {
 };
 
 
-int test__cidr_get_bit() {
+int test__cidr_get_bit()
+{
     short func_success = 1;
     int array_size = sizeof(tests_get_bit) / sizeof(tests_get_bit[0]);
     printf("\nTesting test__cidr_get_bit\n");
@@ -240,7 +242,8 @@ struct _test_cases_cidrminip {
     {"128.2.4.0/28", "128.2.4.0/28"},
 };
 
-int test_irc_in6_CIDRMinIP() {
+int test_irc_in6_CIDRMinIP()
+{
     short func_success = 1;
     int array_size = sizeof(tests_cidrminip) / sizeof(tests_cidrminip[0]);
     printf("\nTesting test_irc_in6_CIDRMinIP\n");
@@ -263,7 +266,8 @@ int test_irc_in6_CIDRMinIP() {
 }
 
 
-int test_cidr_add_node() {
+int test_cidr_add_node()
+{
     int success = 1;
     int array_size = sizeof(add_node_test_cases) / sizeof(add_node_test_cases[0]);
     cidr_root_node *root_tree = cidr_new_tree();
@@ -334,7 +338,8 @@ int test_cidr_add_node() {
     return success;
 }
 
-int main() {
+int main()
+{
     int success = 1;
     int res;
     res = test_irc_in6_CIDRMinIP();

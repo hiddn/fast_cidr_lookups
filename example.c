@@ -3,7 +3,8 @@
 #include "include/cidr_lookups.h"
 #include "include/irc_stuff.h"
 
-int main() {
+int main()
+{
     char *str1 = "Data 1";
     char *str2 = "Data 2";
     char *str3 = "Data 3";
