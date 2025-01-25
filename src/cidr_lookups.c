@@ -174,7 +174,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
+cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format) {
     unsigned short i = 0;
     cidr_node *n;
     cidr_node **child_pptr;
@@ -216,7 +216,7 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the data associated with the node if it exists. Otherwise, returns NULL
  */
-void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format) {
+void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_format) {
     cidr_node *node = cidr_find_node(root_tree, cidr_string_format);
     if (!node) {
         return 0;
@@ -229,7 +229,7 @@ void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format) {
  * @param[in] cidr_string_format CIDR string format
  * @return 1 if the node was removed, 0 otherwise
  */
-int cidr_rem_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format) {
+int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const char *cidr_string_format) {
     return cidr_rem_node(cidr_find_node(root_tree, cidr_string_format));
 }
 
@@ -307,7 +307,7 @@ int cidr_rem_node(cidr_node *node) {
  * @param[in] bit_index Bit index - must be between 0 and 127
  * @return The specific bit from the IP address
  */
-unsigned short _cidr_get_bit(const struct irc_in_addr *ip, unsigned int bit_index)
+unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bit_index)
 {
     assert(bit_index < 128);
     unsigned int quot = (127 - bit_index) / 16;
@@ -324,10 +324,11 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, unsigned int bit_inde
 }
 
 /** get_cidr_mask - get the CIDR mask of a node
+ *  Be careful: it returns a pointer to a static buffer that gets overwritten on each call
  * @param[in] node Pointer to the node
  * @return The CIDR mask of the node
  */
-const char* get_cidr_mask(cidr_node *node) {
+const char* get_cidr_mask(const cidr_node *node) {
     return ircd_ntocidrmask(&node->ip, node->bits);
 }
 
