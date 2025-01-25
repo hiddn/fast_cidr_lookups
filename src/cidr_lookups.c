@@ -11,6 +11,11 @@
 #include "../include/irc_stuff.h"
 
 #define MAX_DEBUG_PAYLOAD 2048
+
+/** DEBUG - debug message handler
+ * @param[in] format Format string
+ * @param[in] ... Variable arguments
+ */
 void DEBUG (char const *format, ...) {
 	va_list vl;
 	int nchars;
@@ -30,6 +35,13 @@ void DEBUG (char const *format, ...) {
 	return;
 }
 
+/** cidr_create_node - create a new CIDR node
+ * @param[in] ip IP address
+ * @param[in] bits Number of bits in the CIDR mask
+ * @param[in] is_virtual Flag indicating if the node is virtual
+ * @param[in] data Pointer to the data associated with the node
+ * @return Pointer to the created CIDR node
+ */
 cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data) {
     cidr_node *node = 0;
     assert(ip != 0);
@@ -46,6 +58,9 @@ cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bi
     return node;
 }
 
+/** cidr_new_tree - create a new CIDR tree
+ * @return Pointer to the created CIDR tree root node
+ */
 cidr_root_node* cidr_new_tree() {
     struct irc_in_addr ip;
     unsigned char bits;
@@ -60,6 +75,12 @@ cidr_root_node* cidr_new_tree() {
     return root;
 }
 
+/** cidr_add_node - add a new node to the CIDR tree
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @param[in] data Pointer to the data associated with the node
+ * @return Pointer to the added CIDR node
+ */
 cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data) {
     unsigned short i = 0;
     cidr_node *n;
@@ -148,7 +169,11 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
     return n;
 }
 
-// Returns the address of the node if it exists. Returns NULL otherwise.
+/** cidr_find_node - find a node in the CIDR tree
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @return Pointer to the found CIDR node, returns NULL if not found
+ */
 cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
     unsigned short i = 0;
     cidr_node *n;
@@ -186,7 +211,11 @@ cidr_node* cidr_find_node(cidr_root_node *root_tree, char *cidr_string_format) {
     return 0;
 }
 
-// Returns 0 if the node does not exist or if there's no data for the node. Returns a void ptr to the data otherwise.
+/** cidr_get_data - get data associated with a node in the CIDR tree
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @return Pointer to the data associated with the node if it exists. Otherwise, returns NULL
+ */
 void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format) {
     cidr_node *node = cidr_find_node(root_tree, cidr_string_format);
     if (!node) {
@@ -195,10 +224,19 @@ void *cidr_get_data(cidr_root_node *root_tree, char *cidr_string_format) {
     return node->data;
 }
 
+/** cidr_rem_node_by_cidr - remove a node from the CIDR tree by CIDR string
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @return 1 if the node was removed, 0 otherwise
+ */
 int cidr_rem_node_by_cidr(cidr_root_node *root_tree, char *cidr_string_format) {
     return cidr_rem_node(cidr_find_node(root_tree, cidr_string_format));
 }
 
+/** cidr_rem_node - remove a node from the CIDR tree
+ * @param[in] node Pointer to the node to be removed
+ * @return 1 if the node was removed, 0 otherwise
+ */
 int cidr_rem_node(cidr_node *node) {
     if (!node) {
         return 0;
@@ -264,7 +302,11 @@ int cidr_rem_node(cidr_node *node) {
     return 1;
 }
 
-// tested bit (bit_index) must be between 0 and 127
+/** _cidr_get_bit - get a specific bit from an IP address
+ * @param[in] ip Pointer to the IP address
+ * @param[in] bit_index Bit index - must be between 0 and 127
+ * @return The specific bit from the IP address
+ */
 unsigned short _cidr_get_bit(const struct irc_in_addr *ip, unsigned int bit_index)
 {
     assert(bit_index < 128);
@@ -281,10 +323,18 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, unsigned int bit_inde
     return ip16;
 }
 
+/** get_cidr_mask - get the CIDR mask of a node
+ * @param[in] node Pointer to the node
+ * @return The CIDR mask of the node
+ */
 const char* get_cidr_mask(cidr_node *node) {
     return ircd_ntocidrmask(&node->ip, node->bits);
 }
 
+/** set_cidr_mask - copies the node's cidr mask to buffer buf
+ * @param[in] node Pointer to the node
+ * @param[out] buf Buffer to store the CIDR mask
+ */
 void set_cidr_mask(cidr_node *node, char *buf) {
     assert(node != 0);
     const char *cidr = ircd_ntocidrmask(&node->ip, node->bits);
