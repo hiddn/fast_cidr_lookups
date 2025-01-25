@@ -19,21 +19,6 @@ typedef struct _cidr_root_node {
     struct _cidr_node *ipv6;
 } cidr_root_node;
 
-/** DEBUG - debug message handler
- * @param[in] format Format string
- * @param[in] ... Variable arguments
- */
-void DEBUG (char const *format, ...);
-
-/** cidr_create_node - create a new CIDR node
- * @param[in] ip IP address
- * @param[in] bits Number of bits in the CIDR mask
- * @param[in] is_virtual Flag indicating if the node is virtual
- * @param[in] data Pointer to the data associated with the node
- * @return Pointer to the created CIDR node
- */
-cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data);
-
 /** cidr_new_tree - create a new CIDR tree
  * @return Pointer to the created CIDR tree root node
  */
@@ -74,13 +59,6 @@ int cidr_rem_node(cidr_node *node);
  */
 void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_format);
 
-/** _cidr_get_bit - get a specific bit from an IP address
- * @param[in] ip Pointer to the IP address
- * @param[in] bit_index Bit index - must be between 0 and 127
- * @return The specific bit from the IP address
- */
-unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bit_index);
-
 /** cidr_get_parent_node - get the parent node of a node in the CIDR tree
  * @param[in] root_tree Pointer to the root of the CIDR tree
  * @param[in] cidr_string_format CIDR string format
@@ -100,5 +78,13 @@ const char* get_cidr_mask(const cidr_node *node);
  * @param[out] buf Buffer to store the CIDR mask
  */
 void set_cidr_mask(cidr_node *node, char *buf);
+
+/** _cidr_get_bit - get a specific bit from an IP address
+ * @param[in] ip Pointer to the IP address
+ * @param[in] bit_index Bit index - must be between 0 and 127
+ * @return The specific bit from the IP address
+ */
+unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bit_index);
+
 
 #endif /* __CIDR_LOOKUPS_H */

@@ -12,53 +12,10 @@
 
 #define MAX_DEBUG_PAYLOAD 2048
 
-/** DEBUG - debug message handler
- * @param[in] format Format string
- * @param[in] ... Variable arguments
- */
-void DEBUG (char const *format, ...)
-{
-	va_list vl;
-	int nchars;
-	char outbuf[MAX_DEBUG_PAYLOAD+3];
+// local functions
+static void DEBUG (char const *format, ...) __attribute__((format(printf, 1, 2)));
+static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data);
 
-#ifndef CIDR_DEBUG_ENABLED
-    return;
-#endif
-	va_start(vl, format);
-	nchars = vsnprintf(outbuf, MAX_DEBUG_PAYLOAD+1, format, vl);
-	va_end(vl);
-	if (nchars >= MAX_DEBUG_PAYLOAD) {
-		DEBUG("Output truncated: ");
-		nchars = MAX_DEBUG_PAYLOAD;
-	}
-    printf("%s", outbuf);
-	return;
-}
-
-/** cidr_create_node - create a new CIDR node
- * @param[in] ip IP address
- * @param[in] bits Number of bits in the CIDR mask
- * @param[in] is_virtual Flag indicating if the node is virtual
- * @param[in] data Pointer to the data associated with the node
- * @return Pointer to the created CIDR node
- */
-cidr_node* cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data)
-{
-    cidr_node *node = 0;
-    assert(ip != 0);
-    node = malloc(sizeof(cidr_node));
-    memset(node, 0, sizeof(cidr_node));
-    assert(node != 0);
-    if (ip != 0)
-        memcpy(&node->ip, ip, sizeof(node->ip));
-    node->bits = bits;
-    if (!is_virtual) {
-        node->is_virtual = 0;
-    }
-    node->data = data;
-    return node;
-}
 
 /** cidr_new_tree - create a new CIDR tree
  * @return Pointer to the created CIDR tree root node
@@ -71,10 +28,10 @@ cidr_root_node* cidr_new_tree()
     assert(root != 0);
     if (!ipmask_parse("0.0.0.0/0", &ip, &bits))
         exit(-1);
-    root->ipv4 = cidr_create_node(&ip, bits, 0, 0);
+    root->ipv4 = _cidr_create_node(&ip, bits, 0, 0);
     if (!ipmask_parse("0::/0", &ip, &bits))
         exit(-1);
-    root->ipv6 = cidr_create_node(&ip, bits, 0, 0);
+    root->ipv6 = _cidr_create_node(&ip, bits, 0, 0);
     return root;
 }
 
@@ -111,7 +68,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 // Node already exists
                 break;
             }
-            new_node = cidr_create_node(&ip, bits, 1, data);
+            new_node = _cidr_create_node(&ip, bits, 1, data);
             virtual_node = 0;
             struct irc_in_addr tmp_ip;
             memcpy(&tmp_ip, &ip, sizeof(struct irc_in_addr));
@@ -126,7 +83,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 }
                 // Create a virtual node that holds no data.
                 irc_in6_CIDRMinIP(&tmp_ip, j);
-                virtual_node = cidr_create_node(&tmp_ip, j, 0, data);
+                virtual_node = _cidr_create_node(&tmp_ip, j, 0, data);
                 child_pptr = turn_right ? &n->parent->r : &n->parent->l;
                 *child_pptr = virtual_node;
                 virtual_node->parent = n->parent;
@@ -154,7 +111,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
         DEBUG("\tbit %3u node  %3s %-18s turn %s\n", i, n->is_virtual ? "(v)" : "", ircd_ntocidrmask(&n->ip, n->bits), turn_right ? "right" : "left");
         if (!*child_pptr || i == 128) {
             DEBUG("\tAdding node\n");
-            new_node = cidr_create_node(&ip, bits, 1, data);
+            new_node = _cidr_create_node(&ip, bits, 1, data);
             *child_pptr = new_node;
             new_node->parent = n;
             return new_node;
@@ -310,6 +267,28 @@ int cidr_rem_node(cidr_node *node)
     return 1;
 }
 
+/** get_cidr_mask - get the CIDR mask of a node
+ *  Be careful: it returns a pointer to a static buffer that gets overwritten on each call
+ * @param[in] node Pointer to the node
+ * @return The CIDR mask of the node
+ */
+const char* get_cidr_mask(const cidr_node *node)
+{
+    return ircd_ntocidrmask(&node->ip, node->bits);
+}
+
+/** set_cidr_mask - copies the node's cidr mask to buffer buf
+ * @param[in] node Pointer to the node
+ * @param[out] buf Buffer to store the CIDR mask
+ */
+void set_cidr_mask(cidr_node *node, char *buf)
+{
+    assert(node != 0);
+    const char *cidr = ircd_ntocidrmask(&node->ip, node->bits);
+    strncpy(buf, cidr, CIDR_LEN);
+    buf[CIDR_LEN] = 0;
+}
+
 /** _cidr_get_bit - get a specific bit from an IP address
  * @param[in] ip Pointer to the IP address
  * @param[in] bit_index Bit index - must be between 0 and 127
@@ -331,24 +310,50 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bi
     return ip16;
 }
 
-/** get_cidr_mask - get the CIDR mask of a node
- *  Be careful: it returns a pointer to a static buffer that gets overwritten on each call
- * @param[in] node Pointer to the node
- * @return The CIDR mask of the node
+/** DEBUG - debug message handler
+ * @param[in] format Format string
+ * @param[in] ... Variable arguments
  */
-const char* get_cidr_mask(const cidr_node *node)
+static void DEBUG (char const *format, ...)
 {
-    return ircd_ntocidrmask(&node->ip, node->bits);
+	va_list vl;
+	int nchars;
+	char outbuf[MAX_DEBUG_PAYLOAD+3];
+
+#ifndef CIDR_DEBUG_ENABLED
+    return;
+#endif
+	va_start(vl, format);
+	nchars = vsnprintf(outbuf, MAX_DEBUG_PAYLOAD+1, format, vl);
+	va_end(vl);
+	if (nchars >= MAX_DEBUG_PAYLOAD) {
+		DEBUG("Output truncated: ");
+		nchars = MAX_DEBUG_PAYLOAD;
+	}
+    printf("%s", outbuf);
+	return;
 }
 
-/** set_cidr_mask - copies the node's cidr mask to buffer buf
- * @param[in] node Pointer to the node
- * @param[out] buf Buffer to store the CIDR mask
+/** _cidr_create_node - create a new CIDR node
+ * @param[in] ip IP address
+ * @param[in] bits Number of bits in the CIDR mask
+ * @param[in] is_virtual Flag indicating if the node is virtual
+ * @param[in] data Pointer to the data associated with the node
+ * @return Pointer to the created CIDR node
  */
-void set_cidr_mask(cidr_node *node, char *buf)
+static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data)
 {
+    cidr_node *node = 0;
+    assert(ip != 0);
+    node = malloc(sizeof(cidr_node));
+    memset(node, 0, sizeof(cidr_node));
     assert(node != 0);
-    const char *cidr = ircd_ntocidrmask(&node->ip, node->bits);
-    strncpy(buf, cidr, CIDR_LEN);
-    buf[CIDR_LEN] = 0;
+    if (ip != 0)
+        memcpy(&node->ip, ip, sizeof(node->ip));
+    node->bits = bits;
+    if (!is_virtual) {
+        node->is_virtual = 0;
+    }
+    node->data = data;
+    return node;
 }
