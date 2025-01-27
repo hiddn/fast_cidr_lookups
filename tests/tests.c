@@ -31,6 +31,18 @@ struct _add_node_test_cases {
     {"1.2.3.128/29", 1},
     {"1.2.3.144/28", 1},
     {"1.2.3.128/25", 1},
+    {"1.2.3.128/25", 1},
+};
+
+struct _find_node_test_cases {
+    char cidr[CIDR_LEN+1];
+    char cidr_exp[CIDR_LEN+1];
+} find_node_test_cases[] = {
+    {"1.2.0.0/16", "1.2.0.0/16"},
+    {"1.2.3.135/32", "1.2.3.128/29"},
+    {"1.2.3.132/30", "1.2.3.128/29"},
+    {"1.2.3.132/30", "1.2.3.128/29"},
+    {"1.5.3.132/30", ""},
 };
 
 struct _rem_node_test_cases {
@@ -284,15 +296,19 @@ int test_cidr_add_node()
     walk_tree(node, 1);
     walk_tree(node, 0);
 
-    // Test cidr_find_node()
-    printf("Testing cidr_find_node()...\n");
+    // Test _cidr_find_exact_node()
+    printf("Testing _cidr_find_exact_node()...\n");
     for (int i = 0; i < array_size; i++) {
-        cidr_node *node = cidr_find_node(root_tree, add_node_test_cases[i].cidr);
+        cidr_node *node = _cidr_find_exact_node(root_tree, add_node_test_cases[i].cidr);
         const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
         //char cidr[CIDR_LEN+1];
         //strcpy(cidr, ircd_ntocidrmask(&node->ip, node->bits));
         if (!node) {
             printf("  [%2d] %-18s   res: FAILED. node not found\n", i, add_node_test_cases[i].cidr);
+            success = 0;
+        }
+        else if (node->is_virtual) {
+            printf("  [%2d] %-18s   res: FAILED. node is virtual\n", i, add_node_test_cases[i].cidr);
             success = 0;
         }
         else if (strncmp(cidr, add_node_test_cases[i].cidr, strlen(add_node_test_cases[i].cidr)) != 0) {
@@ -301,6 +317,29 @@ int test_cidr_add_node()
         }
         else {
             printf("  [%2d] %-18s   res: SUCCESS\n", i, add_node_test_cases[i].cidr);
+        }
+    }
+
+    // Test cidr_find_node()
+    printf("\nTesting cidr_find_node()...\n");
+    array_size = sizeof(find_node_test_cases) / sizeof(find_node_test_cases[0]);
+    for (int i = 0; i < array_size; i++) {
+        cidr_node *node = cidr_find_node(root_tree, find_node_test_cases[i].cidr);
+        const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
+        if (!node && strncmp(find_node_test_cases[i].cidr_exp, "", CIDR_LEN) == 0) {
+            printf("  [%2d] %-18s   res: SUCCESS\n", i, find_node_test_cases[i].cidr);
+            success = 1;
+        }
+        else if (!node) {
+            printf("  [%2d] %-18s   res: FAILED. node not found\n", i, find_node_test_cases[i].cidr);
+            success = 0;
+        }
+        else if (strncmp(cidr, find_node_test_cases[i].cidr_exp, strlen(find_node_test_cases[i].cidr_exp)) != 0) {
+            printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, find_node_test_cases[i].cidr, cidr);
+            success = 0;
+        }
+        else {
+            printf("  [%2d] %-18s   res: SUCCESS\n", i, find_node_test_cases[i].cidr);
         }
     }
 
@@ -321,7 +360,7 @@ int test_cidr_add_node()
 
     printf("\n(Still) testing cidr_rem_node()...\n");
     for (int i = 0; i < array_size; i++) {
-        cidr_node *node = cidr_find_node(root_tree, rem_node_test_cases[i].cidr);
+        cidr_node *node = _cidr_find_exact_node(root_tree, rem_node_test_cases[i].cidr);
         const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
         if (node && !node->is_virtual) {
             printf("  [%2d] %-18s   res: FAILED. node was removed but was still found\n", i, rem_node_test_cases[i].cidr);
@@ -351,5 +390,9 @@ int main()
     res = test_cidr_add_node();
     if (!res)
         success = 0;
+    if (!success)
+        printf("\nSome tests failed\n");
+    else
+        printf("\nAll tests passed\n");
     return !success;
 }

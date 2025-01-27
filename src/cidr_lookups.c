@@ -15,6 +15,7 @@
 // local functions
 static void DEBUG (char const *format, ...) __attribute__((format(printf, 1, 2)));
 static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data);
+static cidr_node* _get_closest_parent_node(const cidr_node *node);
 
 
 /** cidr_new_tree - create a new CIDR tree
@@ -68,7 +69,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 // Node already exists
                 break;
             }
-            new_node = _cidr_create_node(&ip, bits, 1, data);
+            new_node = _cidr_create_node(&ip, bits, 0, data);
             virtual_node = 0;
             struct irc_in_addr tmp_ip;
             memcpy(&tmp_ip, &ip, sizeof(struct irc_in_addr));
@@ -83,7 +84,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 }
                 // Create a virtual node that holds no data.
                 irc_in6_CIDRMinIP(&tmp_ip, j);
-                virtual_node = _cidr_create_node(&tmp_ip, j, 0, data);
+                virtual_node = _cidr_create_node(&tmp_ip, j, 1, data);
                 child_pptr = turn_right ? &n->parent->r : &n->parent->l;
                 *child_pptr = virtual_node;
                 virtual_node->parent = n->parent;
@@ -111,7 +112,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
         DEBUG("\tbit %3u node  %3s %-18s turn %s\n", i, n->is_virtual ? "(v)" : "", ircd_ntocidrmask(&n->ip, n->bits), turn_right ? "right" : "left");
         if (!*child_pptr || i == 128) {
             DEBUG("\tAdding node\n");
-            new_node = _cidr_create_node(&ip, bits, 1, data);
+            new_node = _cidr_create_node(&ip, bits, 0, data);
             *child_pptr = new_node;
             new_node->parent = n;
             return new_node;
@@ -126,16 +127,38 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
     assert(i == bits);
     assert(n != 0);
     DEBUG("\tAlready exists? Current node: %s\n", ircd_ntocidrmask(&n->ip, n->bits));
+    n->is_virtual = 0;
     n->data = data;
     return n;
 }
 
-/** cidr_find_node - find a node in the CIDR tree
+/** _cidr_find_exact_node - find a node in the CIDR tree
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @return Pointer to the found CIDR node, returns NULL if not found
+ */
+cidr_node* _cidr_find_exact_node(const cidr_root_node *root_tree, const char *cidr_string_format)
+{
+    return _cidr_find_node(root_tree, cidr_string_format, 1);
+}
+
+/** cidr_find_node - find a non-virtual node in the CIDR tree that covers the given CIDR string
  * @param[in] root_tree Pointer to the root of the CIDR tree
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
 cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format)
+{
+    return _cidr_find_node(root_tree, cidr_string_format, 0);
+}
+
+/** _cidr_find_node - find a non-virtual node in the CIDR tree that covers the given CIDR string
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @param[in] is_exact_match If 1, look for an exact cidr_string match. Otherwise, get the closest matching node that covers the given CIDR string
+ * @return Pointer to the found CIDR node, returns NULL if not found
+ */
+cidr_node* _cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format, const unsigned short is_exact_match)
 {
     unsigned short i = 0;
     cidr_node *n;
@@ -149,22 +172,26 @@ cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_stri
     irc_in6_CIDRMinIP(&ip, bits);
     char cidr[CIDR_LEN+1];
     strncpy(cidr, ircd_ntocidrmask(&ip, bits), CIDR_LEN);
-    if (irc_in_addr_is_ipv4(&ip)) {
-        n = root_tree->ipv4;
-    }
-    else
-        n = root_tree->ipv6;
+    n = irc_in_addr_is_ipv4(&ip) ? root_tree->ipv4 : root_tree->ipv6;
     for (i = n->bits; i <= 128; i++) {
         if (i >= bits) {
             if (!irc_in_addr_cmp(&ip, &n->ip) && i == n->bits)
                 if (!n->is_virtual)
                     return n;
-            return 0;
+            if (is_exact_match)
+                return 0;
+            if (n->is_virtual)
+                return _get_closest_parent_node(n);
+            return n;
         }
         turn_right = _cidr_get_bit(&ip, i);
         child_pptr = turn_right ? &n->r : &n->l;
         if (!*child_pptr) {
-            return 0;
+            if (is_exact_match)
+                return 0;
+            if (n->is_virtual)
+                return _get_closest_parent_node(n);
+            return n;
         }
         n = *child_pptr;
         i += n->bits - n->parent->bits - 1;
@@ -180,7 +207,7 @@ cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_stri
  */
 void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_format)
 {
-    cidr_node *node = cidr_find_node(root_tree, cidr_string_format);
+    cidr_node *node = _cidr_find_exact_node(root_tree, cidr_string_format);
     if (!node) {
         return 0;
     }
@@ -194,7 +221,7 @@ void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_for
  */
 int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const char *cidr_string_format)
 {
-    return cidr_rem_node(cidr_find_node(root_tree, cidr_string_format));
+    return cidr_rem_node(_cidr_find_exact_node(root_tree, cidr_string_format));
 }
 
 /** cidr_rem_node - remove a node from the CIDR tree
@@ -351,9 +378,20 @@ static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned
     if (ip != 0)
         memcpy(&node->ip, ip, sizeof(node->ip));
     node->bits = bits;
-    if (!is_virtual) {
-        node->is_virtual = 0;
+    if (is_virtual) {
+        node->is_virtual = 1;
     }
     node->data = data;
     return node;
+}
+
+static cidr_node* _get_closest_parent_node(const cidr_node *node)
+{
+    for (cidr_node *tmp_node = node->parent; tmp_node; tmp_node = tmp_node->parent) {
+        if (tmp_node->is_virtual) {
+            continue;
+        }
+        return tmp_node;
+    }
+    return 0;
 }

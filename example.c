@@ -27,7 +27,7 @@ int main()
     }
 
     // Get node infos
-    node = cidr_find_node(root_tree, "1.2.3.0/24");
+    node = _cidr_find_exact_node(root_tree, "1.2.3.0/24");
     if (node) {
         str_ptr = (char *)node->data;
         char cidr[CIDR_LEN+1];
@@ -44,7 +44,7 @@ int main()
     int is_rem_success = cidr_rem_node_by_cidr(root_tree, "1.2.0.0/20");
     if (is_rem_success)
         printf("Sucessfully removed node 1.2.0.0/20\n");
-    node = cidr_find_node(root_tree, "1.2.0.0/20");
+    node = _cidr_find_exact_node(root_tree, "1.2.0.0/20");
     if (!node) {
         printf("Node 1.2.0.0/20 not found. It was indeed removed.\n");
     }

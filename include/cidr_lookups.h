@@ -32,12 +32,27 @@ cidr_root_node* cidr_new_tree();
  */
 cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data);
 
-/** cidr_find_node - find a node in the CIDR tree
+/** _cidr_find_exact_node - find a node in the CIDR tree
  * @param[in] root_tree Pointer to the root of the CIDR tree
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node
  */
+cidr_node* _cidr_find_exact_node(const cidr_root_node *root_tree, const char *cidr_string_format);
+
+/** cidr_find_node - find a non-virtual node in the CIDR tree that covers the given CIDR string
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @return Pointer to the found CIDR node, returns NULL if not found
+ */
 cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format);
+
+/** _cidr_find_node - find a node in the CIDR tree
+ * @param[in] root_tree Pointer to the root of the CIDR tree
+ * @param[in] cidr_string_format CIDR string format
+ * @param[in] is_exact If 0, returns the closest parent node that is not virtual, otherwise returns the exact node if found
+ * @return Pointer to the found CIDR node, returns NULL if not found
+ */
+cidr_node* _cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format, const unsigned short is_exact);
 
 /** cidr_rem_node_by_cidr - remove a node from the CIDR tree by CIDR string
  * @param[in] root_tree Pointer to the root of the CIDR tree
