@@ -21,7 +21,7 @@ static cidr_node* _get_closest_parent_node(const cidr_node *node);
 /** cidr_new_tree - create a new CIDR tree
  * @return Pointer to the created CIDR tree root node
  */
-cidr_root_node* cidr_new_tree()
+cidr_root_node *cidr_new_tree()
 {
     struct irc_in_addr ip;
     unsigned char bits;
@@ -42,7 +42,7 @@ cidr_root_node* cidr_new_tree()
  * @param[in] data Pointer to the data associated with the node
  * @return Pointer to the added CIDR node
  */
-cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data)
+cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data)
 {
     unsigned short i = 0;
     cidr_node *n;
@@ -137,7 +137,7 @@ cidr_node* cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node* _cidr_find_exact_node(const cidr_root_node *root_tree, const char *cidr_string_format)
+cidr_node *_cidr_find_exact_node(const cidr_root_node *root_tree, const char *cidr_string_format)
 {
     return _cidr_find_node(root_tree, cidr_string_format, 1);
 }
@@ -147,7 +147,7 @@ cidr_node* _cidr_find_exact_node(const cidr_root_node *root_tree, const char *ci
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format)
+cidr_node *cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format)
 {
     return _cidr_find_node(root_tree, cidr_string_format, 0);
 }
@@ -158,7 +158,7 @@ cidr_node* cidr_find_node(const cidr_root_node *root_tree, const char *cidr_stri
  * @param[in] is_exact_match If 1, look for an exact cidr_string match. Otherwise, get the closest matching node that covers the given CIDR string
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node* _cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format, const unsigned short is_exact_match)
+cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format, const unsigned short is_exact_match)
 {
     unsigned short i = 0;
     cidr_node *n;
@@ -299,7 +299,7 @@ int cidr_rem_node(cidr_node *node)
  * @param[in] node Pointer to the node
  * @return The CIDR mask of the node
  */
-const char* get_cidr_mask(const cidr_node *node)
+const char *get_cidr_mask(const cidr_node *node)
 {
     return ircd_ntocidrmask(&node->ip, node->bits);
 }
@@ -368,7 +368,7 @@ static void DEBUG (char const *format, ...)
  * @param[in] data Pointer to the data associated with the node
  * @return Pointer to the created CIDR node
  */
-static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data)
+static cidr_node *_cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data)
 {
     cidr_node *node = 0;
     assert(ip != 0);
@@ -385,7 +385,7 @@ static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned
     return node;
 }
 
-static cidr_node* _get_closest_parent_node(const cidr_node *node)
+static cidr_node *_get_closest_parent_node(const cidr_node *node)
 {
     for (cidr_node *tmp_node = node->parent; tmp_node; tmp_node = tmp_node->parent) {
         if (tmp_node->is_virtual) {
