@@ -320,11 +320,11 @@ int test_cidr_add_node()
         }
     }
 
-    // Test cidr_find_node()
-    printf("\nTesting cidr_find_node()...\n");
+    // Test cidr_search_best()
+    printf("\nTesting cidr_search_best()...\n");
     array_size = sizeof(find_node_test_cases) / sizeof(find_node_test_cases[0]);
     for (int i = 0; i < array_size; i++) {
-        cidr_node *node = cidr_find_node(root_tree, find_node_test_cases[i].cidr);
+        cidr_node *node = cidr_search_best(root_tree, find_node_test_cases[i].cidr);
         const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
         if (!node && strncmp(find_node_test_cases[i].cidr_exp, "", CIDR_LEN) == 0) {
             printf("  [%2d] %-18s   res: SUCCESS\n", i, find_node_test_cases[i].cidr);

@@ -142,12 +142,12 @@ cidr_node *_cidr_find_exact_node(const cidr_root_node *root_tree, const char *ci
     return _cidr_find_node(root_tree, cidr_string_format, 1);
 }
 
-/** cidr_find_node - find a non-virtual node in the CIDR tree that covers the given CIDR string
+/** cidr_search_best - find a non-virtual node in the CIDR tree that covers the given CIDR string
  * @param[in] root_tree Pointer to the root of the CIDR tree
  * @param[in] cidr_string_format CIDR string format
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node *cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format)
+cidr_node *cidr_search_best(const cidr_root_node *root_tree, const char *cidr_string_format)
 {
     return _cidr_find_node(root_tree, cidr_string_format, 0);
 }
