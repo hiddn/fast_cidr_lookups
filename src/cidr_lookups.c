@@ -29,10 +29,10 @@ cidr_root_node *cidr_new_tree()
     assert(root != 0);
     if (!ipmask_parse("0.0.0.0/0", &ip, &bits))
         exit(-1);
-    root->ipv4 = _cidr_create_node(&ip, bits, 0, 0);
+    root->ipv4 = _cidr_create_node(&ip, bits, 1, 0);
     if (!ipmask_parse("0::/0", &ip, &bits))
         exit(-1);
-    root->ipv6 = _cidr_create_node(&ip, bits, 0, 0);
+    root->ipv6 = _cidr_create_node(&ip, bits, 1, 0);
     return root;
 }
 
