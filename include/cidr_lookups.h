@@ -1,7 +1,6 @@
 #ifndef __CIDR_LOOKUPS_H
 #define __CIDR_LOOKUPS_H
 
-#include <sys/types.h>
 #include "irc_stuff.h"
 
 typedef struct _cidr_node {

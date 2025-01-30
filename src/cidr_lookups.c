@@ -1,14 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h> /* BSD: for inet_addr */
-#include <sys/socket.h> /* BSD, Linux: for inet_addr */
-#include <netinet/in.h> /* BSD, Linux: for inet_addr */
-#include <arpa/inet.h> /* BSD, Linux, Solaris: for inet_addr */
-#include <assert.h>
-#include <time.h>
-#include <stdarg.h>
+#include <stdio.h> /* for printf, snprintf */
+#include <stdlib.h> /* for malloc, free, exit */
+#include <assert.h> /* for assert */
+#include <stdarg.h> /* for va_list, va_start, va_end */
 #include "../include/cidr_lookups.h"
-#include "../include/irc_stuff.h"
+#include "../include/irc_stuff.h" /* for irc_in_addr, irc_in6_CIDRMinIP, ircd_ntocidrmask, ipmask_parse, irc_in_addr_is_ipv4, irc_in_addr_cmp */
 
 #define MAX_DEBUG_PAYLOAD 2048
 
