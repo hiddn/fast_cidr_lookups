@@ -38,6 +38,7 @@ $(OBJ_DIR)/example.o: example.c
 test: CFLAGS += -DCIDR_DEBUG_ENABLED
 test: $(TARGET)
 	$(TARGET)
+tests: test
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
