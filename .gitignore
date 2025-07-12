@@ -1,4 +1,7 @@
 .vscode
+.ninja_deps
+.ninja_log
+build.ninja
 core
 cidr
 obj
