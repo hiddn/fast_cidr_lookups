@@ -73,7 +73,7 @@ void walk_tree(const cidr_node *node, int uml_type)
     cidr[CIDR_LEN] = 0;
     if (uml_type && depth == 0) {
         printf("\n@startuml\n");
-        printf("agent \"%s%s\"\n", node && node->is_virtual ? "(v) " : "", cidr);
+        printf("agent \"%s%s\"\n", node && !node->data ? "(v) " : "", cidr);
     }
     depth++;
     if (node->l) {
@@ -94,16 +94,16 @@ void walk_tree(const cidr_node *node, int uml_type)
             child_node = node->l;
             const char *cidr_child = cidr_child_l;
             const unsigned char skipped_bits = child_node->bits - child_node->parent->bits - 1;
-            printf("agent \"%s%s\"\n", child_node && child_node->is_virtual ? "(v) " : "", cidr_child);
+            printf("agent \"%s%s\"\n", child_node && !child_node->data ? "(v) " : "", cidr_child);
             char skip_str[32];
             if (child_node && child_node && skipped_bits)
                 sprintf(skip_str, ": \"(%c) skip %u\"", turn, skipped_bits);
             else
                 sprintf(skip_str, ": \"(%c)\"", turn);
             printf("\"%s%s\" -d-> \"%s%s\"%s\n",
-                node && node->is_virtual ? "(v) " : "",
+                node && !node->data ? "(v) " : "",
                 cidr,
-                child_node && child_node->is_virtual ? "(v) " : "",
+                child_node && !child_node->data ? "(v) " : "",
                 cidr_child,
                 skip_str
                 );
@@ -112,7 +112,7 @@ void walk_tree(const cidr_node *node, int uml_type)
             noexist_inc++;
             printf("agent \"NOEXIST_%d\" as NOEXIST_%d\n", noexist_inc, noexist_inc);
             printf("\"%s%s\" -[hidden]d-> \"NOEXIST_%d\"\n",
-                node && node->is_virtual ? "(v) " : "",
+                node && !node->data ? "(v) " : "",
                 cidr,
                 noexist_inc
                 );
@@ -124,16 +124,16 @@ void walk_tree(const cidr_node *node, int uml_type)
             child_node = node->r;
             const char *cidr_child = cidr_child_r;
             const unsigned char skipped_bits = child_node->bits - child_node->parent->bits - 1;
-            printf("agent \"%s%s\"\n", child_node && child_node->is_virtual ? "(v) " : "", cidr_child);
+            printf("agent \"%s%s\"\n", child_node && !child_node->data ? "(v) " : "", cidr_child);
             char skip_str[32];
             if (child_node && child_node && skipped_bits)
                 sprintf(skip_str, ": \"(%c) skip %u\"", turn, skipped_bits);
             else
                 sprintf(skip_str, ": \"(%c)\"", turn);
             printf("\"%s%s\" -d-> \"%s%s\"%s\n",
-                node && node->is_virtual ? "(v) " : "",
+                node && !node->data ? "(v) " : "",
                 cidr,
-                child_node && child_node->is_virtual ? "(v) " : "",
+                child_node && !child_node->data ? "(v) " : "",
                 cidr_child,
                 skip_str
                 );
@@ -142,7 +142,7 @@ void walk_tree(const cidr_node *node, int uml_type)
             noexist_inc++;
             printf("agent \"NOEXIST_%d\" as NOEXIST_%d\n", noexist_inc, noexist_inc);
             printf("\"%s%s\" -[hidden]d-> \"NOEXIST_%d\"\n",
-                node && node->is_virtual ? "(v) " : "",
+                node && !node->data ? "(v) " : "",
                 cidr,
                 noexist_inc
                 );
@@ -151,11 +151,11 @@ void walk_tree(const cidr_node *node, int uml_type)
     }
     else {
         printf("node: %3s %-18s l: %3s %-18s r: %3s %-18s\n",
-            node->is_virtual ? "(v)" : "",
+            !node->data ? "(v)" : "",
             cidr,
-            node->l && node->l->is_virtual ? "(v)" : "",
+            node->l && !node->l->data ? "(v)" : "",
             node->l ? cidr_child_l : "",
-            node->r && node->r->is_virtual ? "(v)" : "",
+            node->r && !node->r->data ? "(v)" : "",
             node->r ? cidr_child_r : "");
     }
     walk_tree(node->l, uml_type);
@@ -307,7 +307,7 @@ int test_cidr_add_node()
             printf("  [%2d] %-18s   res: FAILED. node not found\n", i, add_node_test_cases[i].cidr);
             success = 0;
         }
-        else if (node->is_virtual) {
+        else if (!node->data) {
             printf("  [%2d] %-18s   res: FAILED. node is virtual\n", i, add_node_test_cases[i].cidr);
             success = 0;
         }
@@ -362,7 +362,7 @@ int test_cidr_add_node()
     for (int i = 0; i < array_size; i++) {
         cidr_node *node = _cidr_find_exact_node(root_tree, rem_node_test_cases[i].cidr);
         const char *cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
-        if (node && !node->is_virtual) {
+        if (node && node->data) {
             printf("  [%2d] %-18s   res: FAILED. node was removed but was still found\n", i, rem_node_test_cases[i].cidr);
             success = 0;
         }

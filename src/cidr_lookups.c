@@ -10,7 +10,7 @@
 
 // local functions
 static void DEBUG (char const *format, ...) __attribute__((format(printf, 1, 2)));
-static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data);
+static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, void *data);
 static cidr_node* _get_closest_parent_node(const cidr_node *node);
 
 /** _cidr_bit_diff - find first mismatching bit
@@ -54,10 +54,10 @@ cidr_root_node *cidr_new_tree()
     assert(root != 0);
     if (!ipmask_parse("0.0.0.0/0", &ip, &bits))
         exit(-1);
-    root->ipv4 = _cidr_create_node(&ip, bits, 1, 0);
+    root->ipv4 = _cidr_create_node(&ip, bits, 0);
     if (!ipmask_parse("0::/0", &ip, &bits))
         exit(-1);
-    root->ipv6 = _cidr_create_node(&ip, bits, 1, 0);
+    root->ipv6 = _cidr_create_node(&ip, bits, 0);
     return root;
 }
 
@@ -77,7 +77,7 @@ cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
     struct irc_in_addr ip;
     unsigned char bits;
     unsigned short turn_right = 0;
-    if (!ipmask_parse(cidr_string_format, &ip, &bits)) {
+    if (!ipmask_parse(cidr_string_format, &ip, &bits) || !data) {
         return 0;
     }
     irc_in6_CIDRMinIP(&ip, bits);
@@ -100,21 +100,20 @@ cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
         if (i == n->bits) {
             if (i == bits) {
                 // Update n itself.
-                n->is_virtual = 0;
                 n->data = data;
                 return n;
             }
             /* Walk to one of n's children, if it exists. */
             child_pptr = turn_right ? &n->r : &n->l;
             if (!*child_pptr) {
-                new_node = _cidr_create_node(&ip, bits, 0, data);
+                new_node = _cidr_create_node(&ip, bits, data);
                 new_node->parent = n;
                 *child_pptr = new_node;
                 return new_node;
             }
             n = *child_pptr;
         } else { /* i < n->bits */
-            new_node = _cidr_create_node(&ip, bits, 0, data);
+            new_node = _cidr_create_node(&ip, bits, data);
             if (i == bits) {
                 /* Insert this node as n's parent. */
                 new_node->parent = n->parent;
@@ -125,7 +124,7 @@ cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 *child_pptr = n;
             } else {
                 /* Insert virtual node above both new node and n. */
-                virtual_node = _cidr_create_node(&ip, i, 1, NULL);
+                virtual_node = _cidr_create_node(&ip, i, NULL);
                 virtual_node->parent = n->parent;
                 *child_pptr = virtual_node;
                 n->parent = virtual_node;
@@ -184,11 +183,11 @@ cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const char *cidr_str
     for (i = n->bits; i <= 128; i++) {
         if (i >= bits) {
             if (!irc_in_addr_cmp(&ip, &n->ip) && i == n->bits)
-                if (!n->is_virtual)
+                if (n->data)
                     return n;
             if (is_exact_match)
                 return 0;
-            if (n->is_virtual)
+            if (!n->data)
                 return _get_closest_parent_node(n);
             return n;
         }
@@ -197,7 +196,7 @@ cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const char *cidr_str
         if (!*child_pptr) {
             if (is_exact_match)
                 return 0;
-            if (n->is_virtual)
+            if (!n->data)
                 return _get_closest_parent_node(n);
             return n;
         }
@@ -241,19 +240,17 @@ int cidr_rem_node(cidr_node *node)
     if (!node) {
         return 0;
     }
-    if (node->is_virtual) {
+    if (!node->data) {
         // Do not remove virtual nodes.
         return 0;
     }
     if (!node->parent) {
         // It is the root node. Make it virtual.
-        node->is_virtual = 1;
         node->data = 0;
         return 1;
     }
     else if (node->l && node->r) {
         // Node has two children. Make it virtual.
-        node->is_virtual = 1;
         node->data = 0;
         return 1;
     }
@@ -280,7 +277,7 @@ int cidr_rem_node(cidr_node *node)
     DEBUG("remove_node> %s\n", ircd_ntocidrmask(&node->ip, node->bits));
     // Check if parent node is virtual and has now only one children. If so, remove parent virtual node too.
     cidr_node *parent_node = node->parent;
-    if (parent_node && parent_node->is_virtual && (!parent_node->l || !parent_node->r)) {
+    if (parent_node && !parent_node->data && (!parent_node->l || !parent_node->r)) {
         cidr_node *grandparent_node = parent_node->parent;
         cidr_node *sibling_node = parent_node->l ? parent_node->l : parent_node->r;
         if (grandparent_node) {
@@ -372,11 +369,10 @@ static void DEBUG (char const *format, ...)
 /** _cidr_create_node - create a new CIDR node
  * @param[in] ip IP address
  * @param[in] bits Number of bits in the CIDR mask
- * @param[in] is_virtual Flag indicating if the node is virtual
  * @param[in] data Pointer to the data associated with the node
  * @return Pointer to the created CIDR node
  */
-static cidr_node *_cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, const unsigned char is_virtual, void *data)
+static cidr_node *_cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, void *data)
 {
     cidr_node *node = 0;
     assert(ip != 0);
@@ -386,9 +382,6 @@ static cidr_node *_cidr_create_node(const struct irc_in_addr *ip, const unsigned
     if (ip != 0)
         memcpy(&node->ip, ip, sizeof(node->ip));
     node->bits = bits;
-    if (is_virtual) {
-        node->is_virtual = 1;
-    }
     node->data = data;
     return node;
 }
@@ -396,7 +389,7 @@ static cidr_node *_cidr_create_node(const struct irc_in_addr *ip, const unsigned
 static cidr_node *_get_closest_parent_node(const cidr_node *node)
 {
     for (cidr_node *tmp_node = node->parent; tmp_node; tmp_node = tmp_node->parent) {
-        if (tmp_node->is_virtual) {
+        if (!tmp_node->data) {
             continue;
         }
         return tmp_node;

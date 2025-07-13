@@ -9,7 +9,6 @@ typedef struct _cidr_node {
     struct _cidr_node *parent;
     struct _cidr_node *l;
     struct _cidr_node *r;
-    char is_virtual;
     void *data;
 } cidr_node;
 
@@ -38,7 +37,7 @@ do {  \
     cidr_node *_node = _root->ipv4; \
     short ipv4_done = 0; \
     while ((node = _node)) { \
-        if (!_node->is_virtual || (show_virtual_nodes))
+        if (_node->data || (show_virtual_nodes))
 
 #define CIDR_ITER_END  \
         if (_node->l) { \
@@ -73,7 +72,7 @@ do {  \
 do { \
     cidr_node *_node = cidr_search_best(root, (ip)); \
     while ((node = _node)) { \
-        if (!_node->is_virtual) \
+        if (_node->data) \
 
 #define CIDR_SEARCH_ALL_MATCHES_END \
         _node = _node->parent; \
