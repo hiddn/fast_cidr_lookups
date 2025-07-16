@@ -1,7 +1,8 @@
 .vscode
+.ninja_deps
+.ninja_log
+build.ninja
 core
-cidr
-obj
 tests/sizeof_short*
 tests/endian_test*
 example

@@ -63,7 +63,7 @@ int main()
     if (is_rem_success)
         printf("Sucessfully removed node 1.2.0.0/20\n");
     node = _cidr_find_exact_node(root_tree, "1.2.0.0/20");
-    if (!node || node->is_virtual) {
+    if (!node || !node->data) {
         // Virtual nodes are nodes that were not created by the user.
         // They hold no data, but are necessary for the tree structure.
         printf("Node 1.2.0.0/20 not found. It was indeed removed.\n");
