@@ -9,12 +9,12 @@
 #define MAX_DEBUG_PAYLOAD 2048
 
 // local functions
-static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, void *data);
 #if defined(CIDR_DEBUG_ENABLED)
 static void DEBUG(char const *format, ...) __attribute__((format(printf, 1, 2)));
 #else
 # define DEBUG(...)
 #endif
+static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, void *data);
 static cidr_node* _get_closest_parent_node(const cidr_node *node);
 
 /** _cidr_bit_diff - find first mismatching bit
@@ -65,34 +65,20 @@ cidr_root_node *cidr_new_tree()
     return root;
 }
 
-/** cidr_add_node - add a new node to the CIDR tree
- * @param[in] root_tree Pointer to the root of the CIDR tree
- * @param[in] cidr_string_format CIDR string format
- * @param[in] data Pointer to the data associated with the node
- * @return Pointer to the added CIDR node
- */
-cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_string_format, void *data)
+ /* cidr_add_node - add a new node to the CIDR tree */
+cidr_node *cidr_add_node(const cidr_root_node *root_tree, const struct irc_in_addr *ip, unsigned char bits, void *data)
 {
     unsigned short i = 0;
     cidr_node *n;
     cidr_node *new_node = 0;
     cidr_node *virtual_node = 0;
     cidr_node **child_pptr = 0;
-    struct irc_in_addr ip;
-    unsigned char bits;
     unsigned short turn_right = 0;
-    if (!ipmask_parse(cidr_string_format, &ip, &bits) || !data) {
-        return 0;
-    }
-    irc_in6_CIDRMinIP(&ip, bits);
-    char cidr[CIDR_LEN+1];
-    strncpy(cidr, ircd_ntocidrmask(&ip, bits), CIDR_LEN);
-    cidr[CIDR_LEN] = 0;
-    DEBUG("add_node>    %s\tbits=%d\n", cidr, bits);
-    n = irc_in_addr_is_ipv4(&ip) ? root_tree->ipv4 : root_tree->ipv6;
+    DEBUG("add_node>    %s\tbits=%d\n", ircd_ntocidrmask(ip, bits), bits);
+    n = irc_in_addr_is_ipv4(ip) ? root_tree->ipv4 : root_tree->ipv6;
     for (i = 0; i < 128; ) {
-        i = _cidr_bit_diff(n, &ip, i, (n->bits < bits) ? n->bits : bits);
-        turn_right = (i < 128) ? _cidr_get_bit(&ip, i) : 0;
+        i = _cidr_bit_diff(n, ip, i, (n->bits < bits) ? n->bits : bits);
+        turn_right = (i < 128) ? _cidr_get_bit(ip, i) : 0;
         DEBUG("\tdiff at %u of %u (%c)\n", i, n->bits, turn_right ? 'r' : 'l');
         assert((i <= n->bits) && (i <= bits));
         /* If pos == n->bits == bits, then we are updating n.
@@ -110,14 +96,14 @@ cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
             /* Walk to one of n's children, if it exists. */
             child_pptr = turn_right ? &n->r : &n->l;
             if (!*child_pptr) {
-                new_node = _cidr_create_node(&ip, bits, data);
+                new_node = _cidr_create_node(ip, bits, data);
                 new_node->parent = n;
                 *child_pptr = new_node;
                 return new_node;
             }
             n = *child_pptr;
         } else { /* i < n->bits */
-            new_node = _cidr_create_node(&ip, bits, data);
+            new_node = _cidr_create_node(ip, bits, data);
             if (i == bits) {
                 /* Insert this node as n's parent. */
                 new_node->parent = n->parent;
@@ -128,7 +114,7 @@ cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
                 *child_pptr = n;
             } else {
                 /* Insert virtual node above both new node and n. */
-                virtual_node = _cidr_create_node(&ip, i, NULL);
+                virtual_node = _cidr_create_node(ip, i, NULL);
                 virtual_node->parent = n->parent;
                 *child_pptr = virtual_node;
                 n->parent = virtual_node;
@@ -143,50 +129,22 @@ cidr_node *cidr_add_node(const cidr_root_node *root_tree, const char *cidr_strin
     return 0;
 }
 
-/** _cidr_find_exact_node - find a node in the CIDR tree
- * @param[in] root_tree Pointer to the root of the CIDR tree
- * @param[in] cidr_string_format CIDR string format
- * @return Pointer to the found CIDR node, returns NULL if not found
- */
-cidr_node *_cidr_find_exact_node(const cidr_root_node *root_tree, const char *cidr_string_format)
-{
-    return _cidr_find_node(root_tree, cidr_string_format, 1);
-}
-
-/** cidr_search_best - find a non-virtual node in the CIDR tree that covers the given CIDR string
- * @param[in] root_tree Pointer to the root of the CIDR tree
- * @param[in] cidr_string_format CIDR string format
- * @return Pointer to the found CIDR node, returns NULL if not found
- */
-cidr_node *cidr_search_best(const cidr_root_node *root_tree, const char *cidr_string_format)
-{
-    return _cidr_find_node(root_tree, cidr_string_format, 0);
-}
-
 /** _cidr_find_node - find a non-virtual node in the CIDR tree that covers the given CIDR string
  * @param[in] root_tree Pointer to the root of the CIDR tree
  * @param[in] cidr_string_format CIDR string format
  * @param[in] is_exact_match If 1, look for an exact cidr_string match. Otherwise, get the closest matching node that covers the given CIDR string
  * @return Pointer to the found CIDR node, returns NULL if not found
  */
-cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const char *cidr_string_format, const unsigned short is_exact_match)
+cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const struct irc_in_addr *ip, unsigned char bits, const unsigned short is_exact_match)
 {
     unsigned short i = 0;
     cidr_node *n;
     cidr_node **child_pptr;
-    struct irc_in_addr ip;
-    unsigned char bits;
     unsigned short turn_right = 0;
-    if (!ipmask_parse(cidr_string_format, &ip, &bits)) {
-        return 0;
-    }
-    irc_in6_CIDRMinIP(&ip, bits);
-    char cidr[CIDR_LEN+1];
-    strncpy(cidr, ircd_ntocidrmask(&ip, bits), CIDR_LEN);
-    n = irc_in_addr_is_ipv4(&ip) ? root_tree->ipv4 : root_tree->ipv6;
+    n = irc_in_addr_is_ipv4(ip) ? root_tree->ipv4 : root_tree->ipv6;
     for (i = n->bits; i <= 128; i++) {
         if (i >= bits) {
-            if (!irc_in_addr_cmp(&ip, &n->ip) && i == n->bits)
+            if (!irc_in_addr_cmp(ip, &n->ip) && i == n->bits)
                 if (n->data)
                     return n;
             if (is_exact_match)
@@ -195,7 +153,7 @@ cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const char *cidr_str
                 return _get_closest_parent_node(n);
             return n;
         }
-        turn_right = _cidr_get_bit(&ip, i);
+        turn_right = _cidr_get_bit(ip, i);
         child_pptr = turn_right ? &n->r : &n->l;
         if (!*child_pptr) {
             if (is_exact_match)
@@ -211,28 +169,17 @@ cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const char *cidr_str
     return 0;
 }
 
-/** cidr_get_data - get data associated with a node in the CIDR tree
- * @param[in] root_tree Pointer to the root of the CIDR tree
- * @param[in] cidr_string_format CIDR string format
- * @return Pointer to the data associated with the node if it exists. Otherwise, returns NULL
- */
-void *cidr_get_data(const cidr_root_node *root_tree, const char *cidr_string_format)
+/* cidr_get_data - get data associated with a node in the CIDR tree */
+void *cidr_get_data(const cidr_root_node *root_tree, const struct irc_in_addr *ip, unsigned char nbits)
 {
-    cidr_node *node = _cidr_find_exact_node(root_tree, cidr_string_format);
-    if (!node) {
-        return 0;
-    }
-    return node->data;
+    cidr_node *node = _cidr_find_exact_node(root_tree, ip, nbits);
+    return node ? node->data : 0;
 }
 
-/** cidr_rem_node_by_cidr - remove a node from the CIDR tree by CIDR string
- * @param[in] root_tree Pointer to the root of the CIDR tree
- * @param[in] cidr_string_format CIDR string format
- * @return 1 if the node was removed, 0 otherwise
- */
-int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const char *cidr_string_format)
+/* cidr_rem_node_by_cidr - remove a node from the CIDR tree by CIDR string */
+int cidr_rem_node_by_cidr(const cidr_root_node *root_tree, const struct irc_in_addr *ip, unsigned char nbits)
 {
-    return cidr_rem_node(_cidr_find_exact_node(root_tree, cidr_string_format));
+    return cidr_rem_node(_cidr_find_exact_node(root_tree, ip, nbits));
 }
 
 /** cidr_rem_node - remove a node from the CIDR tree

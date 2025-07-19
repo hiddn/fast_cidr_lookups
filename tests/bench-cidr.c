@@ -63,9 +63,8 @@
 
 #if defined(CIDR_LOOKUPS_API)
 # include "../include/cidr_lookups.h"
-#else
-# include "../include/irc_stuff.h"
 #endif
+#include "../include/irc_stuff.h"
 
 #if defined(__DARWIN_C_LEVEL)
 # define HAS_MSTATS
@@ -146,11 +145,11 @@ void table_map(const struct entry *entry, void *value)
 #if defined(CIDR_LOOKUPS_API)
 	if (value)
 	{
-		cidr_add_node(cidr_root, entry->text, value);
+		cidr_add_node(cidr_root, &entry->addr, entry->nbits, value);
 	}
 	else
 	{
-		cidr_rem_node_by_cidr(cidr_root, entry->text);
+		cidr_rem_node_by_cidr(cidr_root, &entry->addr, entry->nbits);
 	}
 #endif
 }
@@ -158,7 +157,7 @@ void table_map(const struct entry *entry, void *value)
 void *table_lookup(const struct entry *entry)
 {
 #if defined(CIDR_LOOKUPS_API)
-	cidr_node *node = cidr_search_best(cidr_root, entry->text);
+	const cidr_node *node = cidr_search_best(cidr_root, &entry->addr, entry->nbits);
 	return node ? node->data : NULL;
 #endif
 }
