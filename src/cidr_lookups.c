@@ -9,8 +9,12 @@
 #define MAX_DEBUG_PAYLOAD 2048
 
 // local functions
-static void DEBUG (char const *format, ...) __attribute__((format(printf, 1, 2)));
 static cidr_node* _cidr_create_node(const struct irc_in_addr *ip, const unsigned char bits, void *data);
+#if defined(CIDR_DEBUG_ENABLED)
+static void DEBUG(char const *format, ...) __attribute__((format(printf, 1, 2)));
+#else
+# define DEBUG(...)
+#endif
 static cidr_node* _get_closest_parent_node(const cidr_node *node);
 
 /** _cidr_bit_diff - find first mismatching bit
@@ -342,6 +346,7 @@ unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bi
     return ip16;
 }
 
+#if defined(CIDR_DEBUG_ENABLED)
 /** DEBUG - debug message handler
  * @param[in] format Format string
  * @param[in] ... Variable arguments
@@ -352,9 +357,6 @@ static void DEBUG (char const *format, ...)
 	int nchars;
 	char outbuf[MAX_DEBUG_PAYLOAD+3];
 
-#ifndef CIDR_DEBUG_ENABLED
-    return;
-#endif
 	va_start(vl, format);
 	nchars = vsnprintf(outbuf, MAX_DEBUG_PAYLOAD+1, format, vl);
 	va_end(vl);
@@ -365,6 +367,7 @@ static void DEBUG (char const *format, ...)
     printf("%s", outbuf);
 	return;
 }
+#endif
 
 /** _cidr_create_node - create a new CIDR node
  * @param[in] ip IP address
