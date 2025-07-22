@@ -34,7 +34,6 @@ load_vars();
 add_exe('cidr', '', 'src/cidr_lookups.c', 'src/irc_stuff.c', 'tests/tests.c');
 add_exe('example', '', 'src/cidr_lookups.c', 'src/irc_stuff.c', 'example.c');
 add_exe('bench-cidr-lookups', '-lm', 'src/cidr_lookups.c', 'src/irc_stuff.c', 'bench-cidr-lookups.o');
-add_exe('bench-lpc-trie', '-lm', 'src/lpc_trie.c', 'src/irc_stuff.c', 'bench-lpc-trie.o');
 
 # Emit the output file.
 my ($fh, $filename) = tempfile('build.ninja.XXXXXX');

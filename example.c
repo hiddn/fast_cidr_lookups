@@ -10,32 +10,38 @@ int main()
     char *str3 = "Data 3";
     char *str4 = "Data 4";
     char *str5 = "New data";
-    char ip[CIDR_LEN+1];
+    struct irc_in_addr ip;
+    unsigned char nbits;
+    const char *ip_text;
     cidr_node *node;
     cidr_root_node *root_tree = cidr_new_tree();
 
     // The data we add to the nodes is just a string here, but it could be any data structure
-    cidr_add_node(root_tree, "1234:5678:90ab:cdef::1/128", str1);
-    cidr_add_node(root_tree, "1.2.3.0/24", str2);
-    cidr_add_node(root_tree, "1.2.0.0/20", str3);
-    cidr_add_node(root_tree, "1.2.3.4/32", str4);
-    cidr_add_node(root_tree, "1.2.3.4/32", str5);  // This changes the data of the node (str4 -> str5)
-
-    strncpy(ip, "1.2.3.4", CIDR_LEN);
-    ip[CIDR_LEN] = 0;
+    ipmask_parse("1234:5678:90ab:cdef::1/128", &ip, &nbits);
+    cidr_add_node(root_tree, &ip, nbits, str1);
+    ipmask_parse("1.2.3.0/24", &ip, &nbits);
+    cidr_add_node(root_tree, &ip, nbits, str2);
+    ipmask_parse("1.2.0.0/20", &ip, &nbits);
+    cidr_add_node(root_tree, &ip, nbits, str3);
+    ipmask_parse("1.2.3.4/32", &ip, &nbits);
+    cidr_add_node(root_tree, &ip, nbits, str4);
+    ipmask_parse("1.2.3.4/32", &ip, &nbits);
+    cidr_add_node(root_tree, &ip, nbits, str5);  // This changes the data of the node (str4 -> str5)
 
     // Search best match
-    printf("Searching best match for %s...\n", ip);
-    node = cidr_search_best(root_tree, ip);
+    ipmask_parse("1.2.3.4", &ip, &nbits);
+    ip_text = ircd_ntoa(&ip);
+    printf("Searching best match for %s...\n", ip_text);
+    node = cidr_search_best(root_tree, &ip, 128);
     if (node) {
-        printf("Best match found for %s: node %s. Data: %s\n", ip, get_cidr_mask(node), (char *)node->data);
+        printf("Best match found: node %s. Data: %s\n", get_cidr_mask(node), (char *)node->data);
     }
     // Output: Best match found for 1.2.3.4: node 1.2.3.4/32. Data: New data
 
     // Search all matches
-    printf("\nSearching all matches for %s...\n", ip);
+    printf("\nSearching all matches for %s...\n", ip_text);
     cidr_node *iter_node = 0;
-    CIDR_SEARCH_ALL_MATCHES(root_tree, iter_node, ip) {
+    CIDR_SEARCH_ALL_MATCHES(root_tree, iter_node, &ip) {
         printf("  Node %s. Data: %s\n", get_cidr_mask(iter_node), (char *)iter_node->data);
     } CIDR_SEARCH_ALL_MATCHES_END;
     /* Output:
@@ -59,10 +65,11 @@ int main()
     printf("End of iteration\n\n");
 
     // Remove a node
-    int is_rem_success = cidr_rem_node_by_cidr(root_tree, "1.2.0.0/20");
+    ipmask_parse("1.2.0.0/20", &ip, &nbits);
+    int is_rem_success = cidr_rem_node_by_cidr(root_tree, &ip, nbits);
     if (is_rem_success)
         printf("Sucessfully removed node 1.2.0.0/20\n");
-    node = _cidr_find_exact_node(root_tree, "1.2.0.0/20");
+    node = _cidr_find_exact_node(root_tree, &ip, nbits);
     if (!node || !node->data) {
         // Virtual nodes are nodes that were not created by the user.
         // They hold no data, but are necessary for the tree structure.

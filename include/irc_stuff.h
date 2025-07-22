@@ -11,6 +11,7 @@
 #include <string.h>
 #include <netinet/in.h>
 
+#include "cidr_lookups.h" /* irc_in_addr */
 
 #define SOCKIPLEN 45
 #define CIDR_LEN 43
@@ -34,11 +35,6 @@
                                   || (A)->in6_16[7] != (B)->in6_16[7] || !irc_in_addr_is_ipv4(B)) \
                               : memcmp((A), (B), sizeof(struct irc_in_addr)))
 
-/** Structure to store an IP address. */
-struct irc_in_addr
-{
-  unsigned short in6_16[8]; /**< IPv6 encoded parts, little-endian. */
-};
 
 
 /* Created my own IsDigit. Did not take macro from ircu */
