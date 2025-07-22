@@ -331,7 +331,7 @@ void bench_report(const char *phase, uint64_t count)
 	/* Collect malloc statistics. */
 #if defined(HAS_MSTATS)
 	m_stats = mstats();
-	printf(" ... %zu bytes_total, %zu chunks_used, %zu bytes_used, %zu chunks_free, %zd bytes_free\n",
+	printf(" ... %zd bytes_total, %zd chunks_used, %zd bytes_used, %zd chunks_free, %zd bytes_free\n",
 		m_stats.bytes_total - b_m_stats.bytes_total,
 		m_stats.chunks_used - b_m_stats.chunks_used,
 		m_stats.bytes_used - b_m_stats.bytes_used,
@@ -470,17 +470,9 @@ int prng_weighted(uint64_t w[], int count)
 int entry_cmp(const void *va, const void *vb)
 {
 	const struct entry *a = va, *b = vb;
-	int ii, jj;
+	int ii;
 
-	/* First, sort IPv4 < IPv6. */
-	ii = irc_in_addr_is_ipv4(&a->addr);
-	jj = irc_in_addr_is_ipv4(&b->addr);
-	if (ii != jj)
-	{
-		return jj - ii;
-	}
-
-	/* Next, sort mask < full < miss. */
+	/* First, sort mask < full < miss. */
 	if (a->nbits != b->nbits)
 	{
 		if (a->nbits == 0) return 1;
