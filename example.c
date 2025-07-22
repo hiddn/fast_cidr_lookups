@@ -32,7 +32,7 @@ int main()
     ipmask_parse("1.2.3.4", &ip, &nbits);
     ip_text = ircd_ntoa(&ip);
     printf("Searching best match for %s...\n", ip_text);
-    node = cidr_search_best(root_tree, &ip, 128);
+    node = cidr_search_best(root_tree, &ip, 128); // Note: for IPv4, add 96 to nbits. In this case, for a /32, we use 32+96 = 128.
     if (node) {
         printf("Best match found: node %s. Data: %s\n", get_cidr_mask(node), (char *)node->data);
     }
