@@ -2,8 +2,9 @@
 Fast IP to CIDR block(s) lookup using trie in c, inspired by [yl2chen's cidranger](https://github.com/yl2chen/cidranger) written in Golang, which was inspired by [IPv4 route lookup linux](https://vincent.bernat.im/en/blog/2017-ipv4-route-lookup-linux).
 
 
-## Author
+## Authors
 Hidden (hidden at undernet.org)
+Entrope (entrope at undernet.org)
 
 ## How to use the library
 Include the library headers
@@ -19,26 +20,38 @@ cidr_root_node *root_tree = cidr_new_tree();
 
 Add the nodes with data ((char *) in this case, but can be of any type)
 ```c
-cidr_node *node = 0;
+struct irc_in_addr ip;
+unsigned char nbits;
+const char *ip_text;
+cidr_node *node;
+cidr_root_node *root_tree = cidr_new_tree();
 char *str1 = "Data 1";
-cidr_add_node(root_tree, "1.2.3.0/24", str1);
-cidr_add_node(root_tree, "1.2.0.0/16", str1);
-cidr_add_node(root_tree, "150.0.0.0/8", str1);
+
+// The data we add to the nodes is just a string here, but it could be any data structure
+ipmask_parse("1.2.3.0/24", &ip, &nbits);
+cidr_add_node(root_tree, &ip, nbits, str1);
+ipmask_parse("1.2.3.0/16", &ip, &nbits);
+cidr_add_node(root_tree, &ip, nbits, str1);
+ipmask_parse("150.0.0.0/8", &ip, &nbits);
+cidr_add_node(root_tree, &ip, nbits, str1);
 ```
 
 Search for the node that is the best match for an IP address and access its data.
 ```c
-node = cidr_search_best(root_tree, "1.2.3.4");
+ipmask_parse("1.2.3.4", &ip, &nbits);
+ip_text = ircd_ntoa(&ip);
+node = cidr_search_best(root_tree, &ip, 128);  // Note: for IPv4, add 96 to nbits. In this case, for a /32, we use 32+96 = 128.
 if (node) {
-    printf("Best match found for %s: node %s. Data: %s\n", ip, get_cidr_mask(node), (char *)node->data);
+    printf("Best match found for %s: node %s. Data: %s\n", ip_text, get_cidr_mask(node), (char *)node->data);
     // The best match for 1.2.3.4 is 1.2.3.0/24, as it is closer to 1.2.3.4/32 than 1.2.0.0/16.
 }
 ```
 
 Iterate all nodes that match an IP address
 ```c
+// ip was set to "1.2.3.4" above using ipmask_parse()
 cidr_node *iter_node = 0;
-CIDR_SEARCH_ALL_MATCHES(root_tree, iter_node, "1.2.3.4") {
+CIDR_SEARCH_ALL_MATCHES(root_tree, iter_node, &ip) {
     printf("  Node %s. Data: %s\n", get_cidr_mask(iter_node), (char *)iter_node->data);
 } CIDR_SEARCH_ALL_MATCHES_END;
 // Results would be 1.2.3.0/24 and 1.2.0.0/16
@@ -54,7 +67,8 @@ CIDR_ITER(root_tree, i_node) {
 
 Remove a node
 ```c
-int is_rem_success = cidr_rem_node_by_cidr(root_tree, "1.2.0.0/16");
+ipmask_parse("1.2.0.0/16", &ip, &nbits);
+int is_rem_success = cidr_rem_node_by_cidr(root_tree, &ip, nbits);
 if (is_rem_success)
     printf("Sucessfully removed node 1.2.0.0/16\n");
 ```

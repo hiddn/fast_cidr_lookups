@@ -1,3 +1,23 @@
+/*
+ * fast_cidr_lookups - example.c
+ * Copyright (C) 2025 Hidden <hidden@undernet.org> and
+ *                    Entrope <entrope@undernet.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "include/cidr_lookups.h"
@@ -32,7 +52,7 @@ int main()
     ipmask_parse("1.2.3.4", &ip, &nbits);
     ip_text = ircd_ntoa(&ip);
     printf("Searching best match for %s...\n", ip_text);
-    node = cidr_search_best(root_tree, &ip, 128);
+    node = cidr_search_best(root_tree, &ip, 128); // Note: for IPv4, add 96 to nbits. In this case, for a /32, we use 32+96 = 128.
     if (node) {
         printf("Best match found: node %s. Data: %s\n", get_cidr_mask(node), (char *)node->data);
     }

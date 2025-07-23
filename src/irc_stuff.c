@@ -1,3 +1,8 @@
+/**
+ * @file irc_stuff.c
+ * Stuff taken from Undernet's ircu2: https://github.com/UndernetIRC/ircu2/
+ */
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
