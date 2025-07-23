@@ -23,8 +23,18 @@
 #include <stdlib.h> /* for malloc, free, exit */
 #include <assert.h> /* for assert */
 #include <stdarg.h> /* for va_list, va_start, va_end */
+#include <netinet/in.h> /* for ntohs */
+
 #include "../include/cidr_lookups.h"
-#include "../include/irc_stuff.h" /* for irc_in_addr, irc_in6_CIDRMinIP, ircd_ntocidrmask, ipmask_parse, irc_in_addr_is_ipv4, irc_in_addr_cmp */
+
+#if !defined(IRCU2_BUILD)
+/* Do not include irc_stuff if this file is part of Undernet's ircu2 */
+#include "../include/irc_stuff.h" /* for irc_in_addr, ircd_ntocidrmask, ipmask_parse, irc_in_addr_is_ipv4, irc_in_addr_cmp */
+#else
+#include "../include/ircd_defs.h" /* CIDR_LEN */
+#include "../include/res.h" /* CIDR_LEN */
+#include "../include/ircd_string.h"
+#endif /* IRCU2_BUILD */
 
 #define MAX_DEBUG_PAYLOAD 2048
 
@@ -365,4 +375,22 @@ static cidr_node *_get_closest_parent_node(const cidr_node *node)
         return tmp_node;
     }
     return 0;
+}
+
+/* This one is from Undernet's gnuworld, with a couple of modifications */
+void irc_in6_CIDRMinIP(struct irc_in_addr *ircip, unsigned int CClonesCIDR)
+{
+  if (CClonesCIDR == 128) {
+    return;
+  }
+  unsigned int quot = (127 - CClonesCIDR) / 16;
+	unsigned int rem = (127 - CClonesCIDR) % 16;
+	unsigned int i;
+
+  for (i = 0; i < quot; i++)
+		ircip->in6_16[7-i] = 0;
+	unsigned short ip16 = ntohs(ircip->in6_16[7-i]);
+	ip16 >>= rem+1;
+	ip16 <<= rem+1;
+	ircip->in6_16[7-i] = htons(ip16);
 }

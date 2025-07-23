@@ -3,7 +3,8 @@
  * Stuff taken from Undernet's ircu2: https://github.com/UndernetIRC/ircu2/
  */
 
-#ifndef irc_in_addr_valid
+#ifndef __CIDR_IRC_STUFF_H
+#define __CIDR_IRC_STUFF_H
 
 #include <assert.h>
 #include <stdlib.h>
@@ -47,10 +48,9 @@ unsigned int ircd_aton_ip4(const char *input, unsigned int *output, unsigned cha
 const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in);
 const char* ircd_ntoa(const struct irc_in_addr* in);
 const char* ircd_ntocidrmask(const struct irc_in_addr* in, const unsigned char bits);
-void irc_in6_CIDRMinIP(struct irc_in_addr *ircip, unsigned int CClonesCIDR);
 
 
 
 
 
-#endif /* irc_in_addr_valid */
+#endif /* __CIDR_IRC_STUFF_H */

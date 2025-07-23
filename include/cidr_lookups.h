@@ -21,11 +21,15 @@
 #ifndef __CIDR_LOOKUPS_H
 #define __CIDR_LOOKUPS_H
 
+#if !defined(IRCU2_BUILD)
 /** Structure to store an IP address. */
 struct irc_in_addr
 {
   unsigned short in6_16[8]; /**< IPv6 encoded parts, little-endian. */
 };
+#else
+#include "../include/res.h" /* struct irc_in_addr */
+#endif /* IRCU2_BUILD */
 
 typedef struct _cidr_node {
     struct irc_in_addr ip;
@@ -184,6 +188,10 @@ void set_cidr_mask(cidr_node *node, char *buf);
  * @return The specific bit from the IP address
  */
 unsigned short _cidr_get_bit(const struct irc_in_addr *ip, const unsigned int bit_index);
+
+
+/* This one is from Undernet's gnuworld, with a couple of modifications */
+void irc_in6_CIDRMinIP(struct irc_in_addr *ircip, unsigned int CClonesCIDR);
 
 
 #endif /* __CIDR_LOOKUPS_H */

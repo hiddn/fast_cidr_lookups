@@ -327,25 +327,6 @@ const char* ircd_ntocidrmask(const struct irc_in_addr* in, const unsigned char b
   return cidr;
 }
 
-
-/* This one is from Undernet's gnuworld, with a couple of modifications */
-void irc_in6_CIDRMinIP(struct irc_in_addr *ircip, unsigned int CClonesCIDR)
-{
-  if (CClonesCIDR == 128) {
-    return;
-  }
-  unsigned int quot = (127 - CClonesCIDR)/16;
-	unsigned int rem = (127 - CClonesCIDR) % 16;
-	unsigned int i;
-	
-  for (i = 0; i < quot; i++)
-		ircip->in6_16[7-i] = 0;
-	unsigned short ip16 = ntohs(ircip->in6_16[7-i]);
-	ip16 >>= rem+1;
-	ip16 <<= rem+1;
-	ircip->in6_16[7-i] = htons(ip16);
-}
-
 /*
  * this new faster inet_ntoa was ripped from:
  * From: Thomas Helvey <tomh@inxpress.net>
