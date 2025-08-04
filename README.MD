@@ -3,8 +3,8 @@ Fast IP to CIDR block(s) lookup using trie in c, inspired by [yl2chen's cidrange
 
 
 ## Authors
-Hidden (hidden at undernet.org)
-Entrope (entrope at undernet.org)
+* Hidden (hidden at undernet.org)
+* Entrope (entrope at undernet.org)
 
 ## How to use the library
 Include the library headers
