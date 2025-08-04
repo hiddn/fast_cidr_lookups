@@ -3,6 +3,8 @@
  * Copyright (C) 2025 Hidden <hidden@undernet.org> and
  *                    Entrope <entrope@undernet.org>
  *
+ * Source code available at https://github.com/hiddn/fast_cidr_lookups
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2, or (at your option)
