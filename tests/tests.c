@@ -308,7 +308,7 @@ int test_irc_in6_CIDRMinIP()
         test = &tests_cidrminip[i];
         ipmask_parse(test->cidr, &ip, &bits);
         irc_in6_CIDRMinIP(&ip, bits);
-        if (strncmp(ircd_ntocidrmask(&ip, bits), test->exp_cidr, strlen(test->exp_cidr)) != 0) {
+        if (strncmp(ircd_ntocidrmask(&ip, bits), test->exp_cidr, CIDR_LEN) != 0) {
             success = 0;
             func_success = 0;
         }
@@ -357,7 +357,7 @@ int test_cidr_add_node()
             printf("  [%2d] %-18s   res: FAILED. node is virtual\n", i, add_node_test_cases[i].cidr);
             success = 0;
         }
-        else if (strncmp(cidr, add_node_test_cases[i].cidr, strlen(add_node_test_cases[i].cidr)) != 0) {
+        else if (strncmp(cidr, add_node_test_cases[i].cidr, CIDR_LEN) != 0) {
             printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, add_node_test_cases[i].cidr, cidr);
             success = 0;
         }
@@ -375,14 +375,13 @@ int test_cidr_add_node()
         cidr = node ? ircd_ntocidrmask(&node->ip, node->bits) : 0;
         if (!node && strncmp(find_node_test_cases[i].cidr_exp, "", CIDR_LEN) == 0) {
             printf("  [%2d] %-18s   res: SUCCESS\n", i, find_node_test_cases[i].cidr);
-            success = 1;
         }
         else if (!node) {
             printf("  [%2d] %-18s   res: FAILED. node not found\n", i, find_node_test_cases[i].cidr);
             success = 0;
         }
-        else if (strncmp(cidr, find_node_test_cases[i].cidr_exp, strlen(find_node_test_cases[i].cidr_exp)) != 0) {
-            printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, find_node_test_cases[i].cidr, cidr);
+        else if (strncmp(cidr, find_node_test_cases[i].cidr_exp, CIDR_LEN) != 0) {
+            printf("  [%2d] %-18s   res: FAILED. Expected: %s. Got: %s\n", i, find_node_test_cases[i].cidr, find_node_test_cases[i].cidr_exp, cidr);
             success = 0;
         }
         else {
@@ -415,7 +414,7 @@ int test_cidr_add_node()
             printf("  [%2d] %-18s   res: FAILED. node was removed but was still found\n", i, rem_node_test_cases[i].cidr);
             success = 0;
         }
-        else if (node && strncmp(cidr, rem_node_test_cases[i].cidr, strlen(rem_node_test_cases[i].cidr)) != 0) {
+        else if (node && strncmp(cidr, rem_node_test_cases[i].cidr, CIDR_LEN) != 0) {
             printf("  [%2d] %-18s   res: FAILED. node not identical: %s\n", i, rem_node_test_cases[i].cidr, cidr);
             success = 0;
         }
