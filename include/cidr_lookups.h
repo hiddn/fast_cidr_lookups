@@ -71,15 +71,15 @@ do {  \
 
 #define CIDR_ITER_END  \
         if (_node->l) { \
-            _node = _node->l; \
             if (_node->r) { \
                 *_stack_ptr++ = _node->r; \
             } \
+            _node = _node->l; \
         } \
         else if (_node->r) \
             _node = _node->r; \
         else if (_stack_ptr != _stack) \
-            _node = *_stack_ptr--; \
+            _node = *--_stack_ptr; \
         else { \
             if (!ipv4_done) { \
                 _node = _root->ipv6; \
