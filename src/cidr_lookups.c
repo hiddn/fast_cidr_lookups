@@ -171,33 +171,41 @@ cidr_node *_cidr_find_node(const cidr_root_node *root_tree, const struct irc_in_
 {
     unsigned short i = 0;
     cidr_node *n;
-    cidr_node **child_pptr;
+    cidr_node *child_ptr;
     unsigned short turn_right = 0;
     n = irc_in_addr_is_ipv4(ip) ? root_tree->ipv4 : root_tree->ipv6;
-    for (i = n->bits; i <= 128; i++) {
-        if (i >= bits) {
-            if (!irc_in_addr_cmp(ip, &n->ip) && i == n->bits)
+    for (i = n->bits; i <= 128; ) {
+        i = _cidr_bit_diff(n, ip, i, (n->bits < bits) ? n->bits : bits);
+        turn_right = (i < 128) ? _cidr_get_bit(ip, i) : 0;
+        DEBUG("\tdiff at %u of %u (%c)\n", i, n->bits, turn_right ? 'r' : 'l');
+        assert((i <= n->bits) && (i <= bits));
+        if (i == n->bits) {
+            if (i == bits) {
+                // Exact match found. Does it have data?
                 if (n->data)
                     return n;
-            if (is_exact_match)
-                return 0;
-            if (!n->data)
+                if (is_exact_match)
+                    return 0;
                 return _get_closest_parent_node(n);
-            return n;
-        }
-        turn_right = _cidr_get_bit(ip, i);
-        child_pptr = turn_right ? &n->r : &n->l;
-        if (!*child_pptr) {
-            if (is_exact_match)
-                return 0;
-            if (!n->data)
+            }
+            /* Walk to one of n's children, if it exists. */
+            child_ptr = turn_right ? n->r : n->l;
+            if (!child_ptr) {
+                // No exact match found
+                if (is_exact_match)
+                    return 0;
+                if (!n->data)
+                    return _get_closest_parent_node(n);
+                return n;
+            }
+            n = child_ptr;
+        } else { /* i < n->bits */
+            if (!is_exact_match)
                 return _get_closest_parent_node(n);
-            return n;
+            return 0;
         }
-        n = *child_pptr;
-        i += n->bits - n->parent->bits - 1;
     }
-    assert(n != 0);
+    assert(0 && "fell off the edge");
     return 0;
 }
 
