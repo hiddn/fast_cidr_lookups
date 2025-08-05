@@ -60,36 +60,36 @@ typedef struct _cidr_root_node {
  * @param[in] show_virtual_nodes If 1, virtual nodes are shown in the iteration
  */
 #define _CIDR_ITER(root, node, show_virtual_nodes) \
-do {  \
-    cidr_node *_stack[129]; \
-    cidr_node **_stack_ptr = _stack; \
-    cidr_root_node *_root = (root); \
-    cidr_node *_node = _root->ipv4; \
-    short ipv4_done = 0; \
-    while ((node = _node)) { \
+do {                                               \
+    cidr_node *_stack[129];                        \
+    cidr_node **_stack_ptr = _stack;               \
+    cidr_root_node *_root = (root);                \
+    cidr_node *_node = _root->ipv4;                \
+    short ipv4_done = 0;                           \
+    while ((node) = _node) {                       \
         if (_node->data || (show_virtual_nodes))
 
-#define CIDR_ITER_END  \
-        if (_node->l) { \
-            if (_node->r) { \
-                *_stack_ptr++ = _node->r; \
-            } \
-            _node = _node->l; \
-        } \
-        else if (_node->r) \
-            _node = _node->r; \
-        else if (_stack_ptr != _stack) \
-            _node = *--_stack_ptr; \
-        else { \
-            if (!ipv4_done) { \
-                _node = _root->ipv6; \
-                ipv4_done = 1; \
-            } \
-            else { \
-                _node = 0; \
-            } \
-        } \
-    } \
+#define CIDR_ITER_END                              \
+        if (_node->l) {                            \
+            if (_node->r) {                        \
+                *_stack_ptr++ = _node->r;          \
+            }                                      \
+            _node = _node->l;                      \
+        }                                          \
+        else if (_node->r)                         \
+            _node = _node->r;                      \
+        else if (_stack_ptr != _stack)             \
+            _node = *--_stack_ptr;                 \
+        else {                                     \
+            if (!ipv4_done) {                      \
+                _node = _root->ipv6;               \
+                ipv4_done = 1;                     \
+            }                                      \
+            else {                                 \
+                _node = 0;                         \
+            }                                      \
+        }                                          \
+    }                                              \
 } while(0)
 
 /** CIDR_SEARCH_ALL_MATCHES - iterate over all nodes in the CIDR tree that match/cover \a ip.
