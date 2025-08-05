@@ -66,7 +66,7 @@ do {                                               \
     cidr_root_node *_root = (root);                \
     cidr_node *_node = _root->ipv4;                \
     short ipv4_done = 0;                           \
-    while ((node) = _node) {                       \
+    while (((node) = _node)) {                     \
         if (_node->data || (show_virtual_nodes))
 
 #define CIDR_ITER_END                              \
